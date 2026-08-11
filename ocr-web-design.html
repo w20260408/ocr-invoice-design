@@ -226,38 +226,38 @@
   .s1-mini-float.warning { background: rgba(230,162,60,.94); }
   .s1-mini-float.error { background: rgba(245,108,108,.94); }
 
-  /* ===== Web 场景二底部 Sheet（对齐 APP 场景二） ===== */
-  .s2-sheet-mask {
-    position: absolute; inset: 0; background: rgba(0,0,0,.4); z-index: 12;
-    display: none; flex-direction: column; justify-content: flex-end;
+  /* ===== Web 场景二处理中弹窗（居中对齐，Web 原生体验） ===== */
+  .s2-dlg-mask {
+    position: absolute; inset: 0; background: rgba(0,0,0,.45); z-index: 12;
+    display: none; align-items: center; justify-content: center;
   }
-  .s2-sheet-mask.show { display: flex; }
-  .s2-sheet {
-    background: #fff; border-radius: 12px 12px 0 0;
-    padding: 14px 0 24px; animation: s2SlideUp .35s ease;
-    max-height: 70%; overflow: auto;
+  .s2-dlg-mask.show { display: flex; }
+  .s2-dlg {
+    width: 400px; background: #fff; border-radius: 8px;
+    padding: 0; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,.15);
+    animation: modalIn .25s ease;
   }
-  @keyframes s2SlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-  .s2-sheet .drag-handle { width: 36px; height: 4px; background: #e4e7ed; border-radius: 2px; margin: 0 auto 12px; }
-  .s2-sheet-head {
+  .s2-dlg-head {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 20px 14px; border-bottom: 1px solid #f0f0f0;
+    padding: 16px 20px; border-bottom: 1px solid #ebeef5;
   }
-  .s2-sheet-title { font-size: 15px; font-weight: 600; color: #303133; }
-  .s2-sheet-close {
-    width: 24px; height: 24px; border-radius: 50%; background: #f5f7fa; border: none;
-    display: flex; align-items: center; justify-content: center; font-size: 14px; color: #909399; cursor: pointer;
+  .s2-dlg-title { font-size: 15px; font-weight: 600; color: #303133; }
+  .s2-dlg-close {
+    width: 24px; height: 24px; border-radius: 4px; background: none; border: none;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; color: #909399; cursor: pointer;
   }
-  .s2-sheet-note {
-    margin: 10px 20px 0; padding: 8px 10px; border-radius: 4px;
-    background: #fff7e6; color: #d48806; font-size: 11px; display: flex; align-items: center; gap: 6px;
+  .s2-dlg-close:hover { background: #f5f7fa; color: #606266; }
+  .s2-dlg-note {
+    margin: 0 20px 10px; padding: 8px 10px; border-radius: 4px;
+    background: #f0f7ff; color: #409eff; font-size: 11px; display: flex; align-items: center; gap: 6px;
   }
-  .s2-step-list { padding: 4px 20px; }
+  .s2-dlg-body { padding: 8px 20px 20px; }
+  .s2-step-list { padding: 0; }
   .s2-step-item {
     display: flex; align-items: center; justify-content: space-between;
     padding: 13px 0; font-size: 13px; color: #303133;
   }
-  .s2-step-item + .s2-step-item { border-top: 1px solid #f5f7fa; }
+  .s2-step-item + .s2-step-item { border-top: 1px solid #f0f0f0; }
   .s2-step-item .name { font-weight: 500; }
   .s2-step-item .right-side { display: flex; align-items: center; gap: 8px; }
   .s2-step-item .st-text { font-size: 12px; }
@@ -706,40 +706,41 @@
             <span id="s2FloatText">AI 识别中...</span>
           </div>
 
-          <!-- 底部 Sheet（插件 iframe，对齐 APP 场景二） -->
-          <div class="s2-sheet-mask" id="s2SheetMask" onclick="s2CloseSheet(event)">
-            <div class="s2-sheet" onclick="event.stopPropagation()">
-              <div class="drag-handle"></div>
-              <div class="s2-sheet-head">
-                <span class="s2-sheet-title">系统处理中</span>
-                <button class="s2-sheet-close" onclick="s2CloseSheet()">✕</button>
+          <!-- 系统处理中弹窗（Web 原生居中模态框） -->
+          <div class="s2-dlg-mask" id="s2SheetMask" onclick="s2CloseSheet(event)">
+            <div class="s2-dlg" onclick="event.stopPropagation()">
+              <div class="s2-dlg-head">
+                <span class="s2-dlg-title">系统处理中</span>
+                <button class="s2-dlg-close" onclick="s2CloseSheet()">✕</button>
               </div>
-              <div class="s2-step-list">
-                <div class="s2-step-item" id="s2Step1">
-                  <span class="name">发票压缩上传</span>
-                  <div class="right-side">
-                    <span class="st-text ok">已完成</span>
-                    <span class="s2-step-check">✓</span>
+              <div class="s2-dlg-body">
+                <div class="s2-step-list">
+                  <div class="s2-step-item" id="s2Step1">
+                    <span class="name">发票压缩上传</span>
+                    <div class="right-side">
+                      <span class="st-text ok">已完成</span>
+                      <span class="s2-step-check">✓</span>
+                    </div>
                   </div>
-                </div>
-                <div class="s2-step-item" id="s2Step2">
-                  <span class="name">发票识别验真</span>
-                  <div class="right-side">
-                    <span class="st-text proc" id="s2Step2Text">处理中</span>
-                    <span class="s2-step-spinner" id="s2Step2Icon"></span>
+                  <div class="s2-step-item" id="s2Step2">
+                    <span class="name">发票识别验真</span>
+                    <div class="right-side">
+                      <span class="st-text proc" id="s2Step2Text">处理中</span>
+                      <span class="s2-step-spinner" id="s2Step2Icon"></span>
+                    </div>
                   </div>
-                </div>
-                <div class="s2-step-item" id="s2Step3">
-                  <span class="name">合规性校验</span>
-                  <div class="right-side">
-                    <span class="st-text wait" id="s2Step3Text">等待中</span>
-                    <span id="s2Step3Icon" style="width:14px;height:14px;"></span>
+                  <div class="s2-step-item" id="s2Step3">
+                    <span class="name">合规性校验</span>
+                    <div class="right-side">
+                      <span class="st-text wait" id="s2Step3Text">等待中</span>
+                      <span id="s2Step3Icon" style="width:14px;height:14px;"></span>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div class="s2-sheet-note">
-                <span>🤖</span>
-                <span>整个 Sheet 在插件 iframe 内，步骤状态由插件控制</span>
+              <div class="s2-dlg-note">
+                <span>💡</span>
+                <span>整个弹窗在插件 iframe 内，步骤状态由插件控制</span>
               </div>
             </div>
           </div>
