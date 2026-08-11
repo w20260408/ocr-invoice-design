@@ -226,6 +226,53 @@
   .s1-mini-float.warning { background: rgba(230,162,60,.94); }
   .s1-mini-float.error { background: rgba(245,108,108,.94); }
 
+  /* ===== Web 场景二底部 Sheet（对齐 APP 场景二） ===== */
+  .s2-sheet-mask {
+    position: absolute; inset: 0; background: rgba(0,0,0,.4); z-index: 12;
+    display: none; flex-direction: column; justify-content: flex-end;
+  }
+  .s2-sheet-mask.show { display: flex; }
+  .s2-sheet {
+    background: #fff; border-radius: 12px 12px 0 0;
+    padding: 14px 0 24px; animation: s2SlideUp .35s ease;
+    max-height: 70%; overflow: auto;
+  }
+  @keyframes s2SlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .s2-sheet .drag-handle { width: 36px; height: 4px; background: #e4e7ed; border-radius: 2px; margin: 0 auto 12px; }
+  .s2-sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px 14px; border-bottom: 1px solid #f0f0f0;
+  }
+  .s2-sheet-title { font-size: 15px; font-weight: 600; color: #303133; }
+  .s2-sheet-close {
+    width: 24px; height: 24px; border-radius: 50%; background: #f5f7fa; border: none;
+    display: flex; align-items: center; justify-content: center; font-size: 14px; color: #909399; cursor: pointer;
+  }
+  .s2-sheet-note {
+    margin: 10px 20px 0; padding: 8px 10px; border-radius: 4px;
+    background: #fff7e6; color: #d48806; font-size: 11px; display: flex; align-items: center; gap: 6px;
+  }
+  .s2-step-list { padding: 4px 20px; }
+  .s2-step-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 0; font-size: 13px; color: #303133;
+  }
+  .s2-step-item + .s2-step-item { border-top: 1px solid #f5f7fa; }
+  .s2-step-item .name { font-weight: 500; }
+  .s2-step-item .right-side { display: flex; align-items: center; gap: 8px; }
+  .s2-step-item .st-text { font-size: 12px; }
+  .s2-step-item .st-text.ok { color: #67c23a; }
+  .s2-step-item .st-text.wait { color: #c0c4cc; }
+  .s2-step-item .st-text.proc { color: #e6a23c; }
+  .s2-step-spinner {
+    width: 14px; height: 14px; border: 2px solid #f0f0f0;
+    border-top-color: #e6a23c; border-radius: 50%; animation: spin .8s linear infinite;
+  }
+  .s2-step-check {
+    width: 16px; height: 16px; border-radius: 50%; background: #67c23a;
+    color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center;
+  }
+
   /* 顶部 AI 识别条（插件 iframe） */
   .ai-bar {
     position: absolute; top: 0; left: 0; right: 0; height: 0;
@@ -659,6 +706,44 @@
             <span id="s2FloatText">AI 识别中...</span>
           </div>
 
+          <!-- 底部 Sheet（插件 iframe，对齐 APP 场景二） -->
+          <div class="s2-sheet-mask" id="s2SheetMask" onclick="s2CloseSheet(event)">
+            <div class="s2-sheet" onclick="event.stopPropagation()">
+              <div class="drag-handle"></div>
+              <div class="s2-sheet-head">
+                <span class="s2-sheet-title">系统处理中</span>
+                <button class="s2-sheet-close" onclick="s2CloseSheet()">✕</button>
+              </div>
+              <div class="s2-step-list">
+                <div class="s2-step-item" id="s2Step1">
+                  <span class="name">发票压缩上传</span>
+                  <div class="right-side">
+                    <span class="st-text ok">已完成</span>
+                    <span class="s2-step-check">✓</span>
+                  </div>
+                </div>
+                <div class="s2-step-item" id="s2Step2">
+                  <span class="name">发票识别验真</span>
+                  <div class="right-side">
+                    <span class="st-text proc" id="s2Step2Text">处理中</span>
+                    <span class="s2-step-spinner" id="s2Step2Icon"></span>
+                  </div>
+                </div>
+                <div class="s2-step-item" id="s2Step3">
+                  <span class="name">合规性校验</span>
+                  <div class="right-side">
+                    <span class="st-text wait" id="s2Step3Text">等待中</span>
+                    <span id="s2Step3Icon" style="width:14px;height:14px;"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="s2-sheet-note">
+                <span>🤖</span>
+                <span>整个 Sheet 在插件 iframe 内，步骤状态由插件控制</span>
+              </div>
+            </div>
+          </div>
+
           <div class="annotation parent" id="s2ParentNote" style="display:none;">✨ 父页面 DOM：子表新增资产记录</div>
         </div>
       </div>
@@ -672,6 +757,7 @@
     <button class="primary" onclick="s2Run('success')">模拟：识别成功新增资产</button>
     <button class="warn" onclick="s2Run('duplicate')">模拟：发票重复</button>
     <button onclick="s2Run('error')">模拟：识别失败</button>
+    <button class="primary" style="background:#722ed1;border-color:#722ed1;" onclick="s2RunSheetMode('success')">模拟：底部 Sheet 识别</button>
     <button onclick="s2Reset()">重置</button>
   </div>
 </div>
@@ -1207,6 +1293,103 @@
           s2SetFileStatus('err');
         }
       }, 1500);
+    }, 1000);
+  }
+
+  /* ===== 场景二底部 Sheet 模式（对齐 APP 场景二） ===== */
+  var S2_SHEET_TIMER = null;
+
+  function s2ResetSheetSteps() {
+    s2UpdateStep(1, 'done');
+    s2UpdateStep(2, 'proc');
+    s2UpdateStep(3, 'wait');
+  }
+
+  function s2UpdateStep(step, state) {
+    var textEl = document.getElementById('s2Step' + step + 'Text');
+    var iconEl = document.getElementById('s2Step' + step + 'Icon');
+    if (!textEl || !iconEl) return;
+
+    if (state === 'done') {
+      textEl.className = 'st-text ok';
+      textEl.textContent = '已完成';
+      iconEl.className = 's2-step-check';
+      iconEl.innerHTML = '\u2713';
+      iconEl.style.display = 'flex';
+    } else if (state === 'proc') {
+      textEl.className = 'st-text proc';
+      textEl.textContent = '处理中';
+      iconEl.className = 's2-step-spinner';
+      iconEl.innerHTML = '';
+      iconEl.style.display = 'block';
+    } else if (state === 'wait') {
+      textEl.className = 'st-text wait';
+      textEl.textContent = '等待中';
+      iconEl.className = '';
+      iconEl.innerHTML = '';
+      iconEl.style.display = 'inline-block';
+    } else if (state === 'err') {
+      textEl.className = 'st-text';
+      textEl.style.color = '#f56c6c';
+      textEl.textContent = '失败';
+      iconEl.className = 's2-step-check';
+      iconEl.style.background = '#f56c6c';
+      iconEl.innerHTML = '\u2717';
+      iconEl.style.display = 'flex';
+    }
+  }
+
+  function s2OpenSheet() {
+    document.getElementById('s2SheetMask').classList.add('show');
+  }
+  function s2CloseSheet(e) {
+    if (e && e.target !== document.getElementById('s2SheetMask')) return;
+    document.getElementById('s2SheetMask').classList.remove('show');
+    if (S2_SHEET_TIMER) { clearTimeout(S2_SHEET_TIMER); S2_SHEET_TIMER = null; }
+  }
+
+  function s2RunSheetMode(type) {
+    s2Reset();
+    s2SetThumbUploading();
+
+    setTimeout(function() {
+      s2SetThumbParsing();
+      s2ResetSheetSteps();
+      s2OpenSheet();
+
+      // Step2 处理中 → 完成后进入 Step3
+      S2_SHEET_TIMER = setTimeout(function() {
+        if (type === 'error') {
+          s2UpdateStep(2, 'err');
+          s2SetThumbError();
+          s2SetFileStatus('err');
+          return;
+        }
+        s2UpdateStep(2, 'done');
+        s2UpdateStep(3, 'proc');
+
+        // Step3 处理中 → 完成
+        S2_SHEET_TIMER = setTimeout(function() {
+          if (type === 'duplicate') {
+            s2UpdateStep(3, 'err');
+            s2SetThumbDuplicate();
+            s2SetFileStatus('dup');
+            return;
+          }
+          s2UpdateStep(3, 'done');
+          s2SetThumbSuccess();
+          s2SetFileStatus('ok');
+          document.getElementById('s2Table').querySelector('tbody').innerHTML =
+            '<tr class="new-row"><td>12345678</td><td>2026-07-15</td><td>阳光综合医院有限公司</td><td>增值税专用发票</td><td>¥5,650.00</td><td>张三</td><td><span class="op">编辑</span> <span class="op">删除</span></td></tr>';
+          document.getElementById('s2TotalAmount').value = '¥5,650.00';
+          document.getElementById('s2ParentNote').style.display = 'inline-flex';
+
+          // 全部完成后 1 秒自动关闭 Sheet
+          S2_SHEET_TIMER = setTimeout(function() {
+            s2CloseSheet();
+          }, 1000);
+        }, 1200);
+      }, 1200);
     }, 1000);
   }
 
