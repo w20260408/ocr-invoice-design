@@ -272,8 +272,26 @@
     width: 16px; height: 16px; border-radius: 50%; background: #67c23a;
     color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center;
   }
-
-  /* 顶部 AI 识别条（插件 iframe） */
+  .s2-step-check.fail { background: #f56c6c; }
+  .s2-step-item .st-text.err { color: #f56c6c; font-size: 12px; font-weight: 500; }
+  .s2-step-item.fail .name { color: #f56c6c; }
+  /* 弹窗底部错误栏 */
+  .s2-dlg-err {
+    margin: 0 20px 16px; padding: 10px 14px; background: #fef0f0; border-radius: 6px;
+    display: none; align-items: center; justify-content: space-between;
+  }
+  .s2-dlg-err.show { display: flex; }
+  .s2-dlg-err .err-msg { font-size: 12px; color: #f56c6c; font-weight: 500; }
+  .s2-dlg-err .err-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .s2-dlg-err .err-retry {
+    padding: 5px 14px; border-radius: 4px; background: #f56c6c; color: #fff;
+    border: none; font-size: 12px; cursor: pointer;
+  }
+  .s2-dlg-err .err-close {
+    padding: 5px 14px; border-radius: 4px; background: #fff; color: #909399;
+    border: 1px solid #dcdfe6; font-size: 12px; cursor: pointer;
+  }
+  .s2-dlg-note { margin: 0 20px 14px; }
   .ai-bar {
     position: absolute; top: 0; left: 0; right: 0; height: 0;
     display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -710,7 +728,7 @@
           <div class="s2-dlg-mask" id="s2SheetMask" onclick="s2CloseSheet(event)">
             <div class="s2-dlg" onclick="event.stopPropagation()">
               <div class="s2-dlg-head">
-                <span class="s2-dlg-title">系统处理中</span>
+                <span class="s2-dlg-title" id="s2DlgTitle">系统处理中</span>
                 <button class="s2-dlg-close" onclick="s2CloseSheet()">✕</button>
               </div>
               <div class="s2-dlg-body">
@@ -737,10 +755,19 @@
                     </div>
                   </div>
                 </div>
-              </div>
-              <div class="s2-dlg-note">
-                <span>💡</span>
-                <span>整个弹窗在插件 iframe 内，步骤状态由插件控制</span>
+                <!-- 动态说明条（成功时显示） -->
+                <div class="s2-dlg-note" id="s2DlgNote">
+                  <span>💡</span>
+                  <span>整个弹窗在插件 iframe 内，步骤状态由插件控制</span>
+                </div>
+                <!-- 错误栏（失败时显示） -->
+                <div class="s2-dlg-err" id="s2DlgErr">
+                  <span class="err-msg" id="s2DlgErrMsg">识别失败</span>
+                  <div class="err-actions">
+                    <button class="err-retry" onclick="s2RetrySheet()">重试</button>
+                    <button class="err-close" onclick="s2CloseSheet()">关闭</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1297,26 +1324,41 @@
     }, 1000);
   }
 
-  /* ===== 场景二底部 Sheet 模式（对齐 APP 场景二） ===== */
+  /* ===== 场景二处理中弹窗模式（对齐 APP 场景二） ===== */
   var S2_SHEET_TIMER = null;
 
   function s2ResetSheetSteps() {
     s2UpdateStep(1, 'done');
     s2UpdateStep(2, 'proc');
     s2UpdateStep(3, 'wait');
+    // 重置标题、说明条和错误栏
+    var title = document.getElementById('s2DlgTitle');
+    if (title) title.textContent = '系统处理中';
+    var note = document.getElementById('s2DlgNote');
+    if (note) note.style.display = 'block';
+    var err = document.getElementById('s2DlgErr');
+    if (err) err.classList.remove('show');
+    // 重置步骤 fail class
+    var step2 = document.getElementById('s2Step2');
+    var step3 = document.getElementById('s2Step3');
+    if (step2) step2.classList.remove('fail');
+    if (step3) step3.classList.remove('fail');
   }
 
   function s2UpdateStep(step, state) {
     var textEl = document.getElementById('s2Step' + step + 'Text');
     var iconEl = document.getElementById('s2Step' + step + 'Icon');
+    var stepEl = document.getElementById('s2Step' + step);
     if (!textEl || !iconEl) return;
 
     if (state === 'done') {
       textEl.className = 'st-text ok';
       textEl.textContent = '已完成';
       iconEl.className = 's2-step-check';
+      iconEl.style.background = '#67c23a';
       iconEl.innerHTML = '\u2713';
       iconEl.style.display = 'flex';
+      if (stepEl) stepEl.classList.remove('fail');
     } else if (state === 'proc') {
       textEl.className = 'st-text proc';
       textEl.textContent = '处理中';
@@ -1330,13 +1372,12 @@
       iconEl.innerHTML = '';
       iconEl.style.display = 'inline-block';
     } else if (state === 'err') {
-      textEl.className = 'st-text';
-      textEl.style.color = '#f56c6c';
+      textEl.className = 'st-text err';
       textEl.textContent = '失败';
-      iconEl.className = 's2-step-check';
-      iconEl.style.background = '#f56c6c';
+      iconEl.className = 's2-step-check fail';
       iconEl.innerHTML = '\u2717';
       iconEl.style.display = 'flex';
+      if (stepEl) stepEl.classList.add('fail');
     }
   }
 
@@ -1349,6 +1390,22 @@
     if (S2_SHEET_TIMER) { clearTimeout(S2_SHEET_TIMER); S2_SHEET_TIMER = null; }
   }
 
+  function s2RetrySheet() {
+    s2CloseSheet();
+    setTimeout(function() { s2RunSheetMode('success'); }, 400);
+  }
+
+  function s2ShowDlgError(msg) {
+    var title = document.getElementById('s2DlgTitle');
+    if (title) title.textContent = '处理失败';
+    var note = document.getElementById('s2DlgNote');
+    if (note) note.style.display = 'none';
+    var err = document.getElementById('s2DlgErr');
+    var errMsg = document.getElementById('s2DlgErrMsg');
+    if (err) err.classList.add('show');
+    if (errMsg) errMsg.textContent = msg;
+  }
+
   function s2RunSheetMode(type) {
     s2Reset();
     s2SetThumbUploading();
@@ -1358,23 +1415,25 @@
       s2ResetSheetSteps();
       s2OpenSheet();
 
-      // Step2 处理中 → 完成后进入 Step3
+      // Step2 处理中 → 结果
       S2_SHEET_TIMER = setTimeout(function() {
         if (type === 'error') {
           s2UpdateStep(2, 'err');
           s2SetThumbError();
           s2SetFileStatus('err');
+          s2ShowDlgError('发票识别验真失败：图片模糊，无法识别');
           return;
         }
         s2UpdateStep(2, 'done');
         s2UpdateStep(3, 'proc');
 
-        // Step3 处理中 → 完成
+        // Step3 处理中 → 结果
         S2_SHEET_TIMER = setTimeout(function() {
           if (type === 'duplicate') {
             s2UpdateStep(3, 'err');
             s2SetThumbDuplicate();
             s2SetFileStatus('dup');
+            s2ShowDlgError('合规性校验失败：发票已存在，请勿重复上传');
             return;
           }
           s2UpdateStep(3, 'done');
@@ -1385,7 +1444,7 @@
           document.getElementById('s2TotalAmount').value = '¥5,650.00';
           document.getElementById('s2ParentNote').style.display = 'inline-flex';
 
-          // 全部完成后 1 秒自动关闭 Sheet
+          // 全部完成后 1 秒自动关闭弹窗
           S2_SHEET_TIMER = setTimeout(function() {
             s2CloseSheet();
           }, 1000);

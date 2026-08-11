@@ -265,6 +265,19 @@
     width: 18px; height: 18px; border-radius: 50%; background: #67c23a;
     color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center;
   }
+  .step-check.fail { background: #f56c6c; }
+  .st-text.err { color: #f56c6c; font-size: 12px; }
+  /* Sheet 失败底部栏 */
+  .s2-err-foot {
+    margin: 8px 20px 0; padding: 10px 14px; background: #fef0f0; border-radius: 8px;
+    display: none; align-items: center; justify-content: space-between;
+  }
+  .s2-err-foot.show { display: flex; }
+  .s2-err-foot .err-msg { font-size: 12px; color: #f56c6c; font-weight: 500; }
+  .s2-err-foot .err-retry {
+    padding: 6px 16px; border-radius: 16px; background: #f56c6c; color: #fff;
+    border: none; font-size: 12px; cursor: pointer; font-weight: 500;
+  }
 
   /* ===== 场景三弹窗 ===== */
   .s3-mask {
@@ -539,12 +552,19 @@
               </div>
             </div>
             <div class="annotation iframe" style="margin:8px 20px 0;">🤖 整个 Sheet 在插件 iframe 内，步骤状态由插件控制</div>
+            <!-- 失败底部栏 -->
+            <div class="s2-err-foot" id="s2ErrFoot">
+              <span class="err-msg" id="s2ErrMsg">发票识别验真失败：图片模糊无法识别</span>
+              <button class="err-retry" onclick="s2Retry()">重试</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="btn-row">
-      <button onclick="s2Trigger()">触发上传识别</button>
+      <button class="success" onclick="s2Trigger('success')">模拟：全部成功</button>
+      <button class="warn" onclick="s2Trigger('fail2')">模拟：步骤2失败</button>
+      <button onclick="s2Trigger('fail3')">模拟：步骤3失败</button>
       <button class="warn" onclick="s2Reset()">重置</button>
     </div>
   </div>
@@ -730,55 +750,101 @@
 
   /* ===== 场景二：Sheet 处理流程 ===== */
   var s2SheetOpen = false;
-  function s2Trigger() {
+  var s2SheetTimer = null;
+
+  function s2Trigger(type) {
     if (s2SheetOpen) return;
     s2SheetOpen = true;
     document.getElementById('s2Sheet').classList.add('show');
-    // 初始化步骤状态
+    document.getElementById('s2ErrFoot').classList.remove('show');
+
     var items = document.querySelectorAll('#s2Steps .step-item');
     items[0].querySelector('.right-side').innerHTML = '<span class="st-text">处理中</span><div class="step-spinner"></div>';
+    items[0].classList.remove('fail');
     items[1].querySelector('.right-side').innerHTML = '<span class="st-text">等待中</span><div class="step-spinner" style="opacity:.3"></div>';
+    items[1].classList.remove('fail');
     items[2].querySelector('.right-side').innerHTML = '<span class="st-text">等待中</span><div class="step-spinner" style="opacity:.3"></div>';
+    items[2].classList.remove('fail');
+    updateSheetTitle('\u7cfb\u7edf\u5904\u7406\u4e2d');
 
-    // 依次推进步骤
-    setTimeout(function() {
-      items[0].querySelector('.right-side').innerHTML = '<span class="st-text ok">已完成</span><div class="step-check">✓</div>';
-      items[1].querySelector('.right-side').innerHTML = '<span class="st-text">处理中</span><div class="step-spinner"></div>';
+    // Step1 \u2192 \u5b8c\u6210
+    s2SheetTimer = setTimeout(function() {
+      items[0].querySelector('.right-side').innerHTML = '<span class="st-text ok">\u5df2\u5b8c\u6210</span><div class="step-check">\u2713</div>';
+      items[1].querySelector('.right-side').innerHTML = '<span class="st-text">\u5904\u7406\u4e2d</span><div class="step-spinner"></div>';
+
+      // Step2 \u2192 \u7ed3\u679c
+      s2SheetTimer = setTimeout(function() {
+        if (type === 'fail2') {
+          items[1].querySelector('.right-side').innerHTML = '<span class="st-text err">\u5931\u8d25</span><div class="step-check fail">\u2717</div>';
+          items[1].classList.add('fail');
+          updateSheetTitle('\u5904\u7406\u5931\u8d25');
+          s2ShowErrFoot('\u53d1\u7968\u8bc6\u522b\u9a8c\u771f\u5931\u8d25\uff1a\u56fe\u7247\u6a21\u7cca\uff0c\u65e0\u6cd5\u8bc6\u522b');
+          return;
+        }
+        items[1].querySelector('.right-side').innerHTML = '<span class="st-text ok">\u5df2\u5b8c\u6210</span><div class="step-check">\u2713</div>';
+        items[2].querySelector('.right-side').innerHTML = '<span class="st-text">\u5904\u7406\u4e2d</span><div class="step-spinner"></div>';
+
+        // Step3 \u2192 \u7ed3\u679c
+        s2SheetTimer = setTimeout(function() {
+          if (type === 'fail3') {
+            items[2].querySelector('.right-side').innerHTML = '<span class="st-text err">\u5931\u8d25</span><div class="step-check fail">\u2717</div>';
+            items[2].classList.add('fail');
+            updateSheetTitle('\u6821\u9a8c\u672a\u901a\u8fc7');
+            s2ShowErrFoot('\u5408\u89c4\u6027\u6821\u9a8c\u5931\u8d25\uff1a\u53d1\u7968\u4fe1\u606f\u4e0e\u7a0e\u52a1\u7cfb\u7edf\u4e0d\u4e00\u81f4');
+            return;
+          }
+          items[2].querySelector('.right-side').innerHTML = '<span class="st-text ok">\u5df2\u5b8c\u6210</span><div class="step-check">\u2713</div>';
+
+          // \u6210\u529f \u2192 \u5173\u95ed\u5e76\u65b0\u589e\u8d44\u4ea7\u5361\u7247
+          setTimeout(function() {
+            s2CloseSheet();
+            var card = '<div class="asset-card ac-card-item">' +
+              '<button class="ac-del" onclick="s2DeleteCard(this)">\u00d7</button>' +
+              '<div class="ac-body">' +
+                '<div class="ac-row"><span class="ac-label">\u53d1\u7968\u53f7\u7801</span><span class="ac-val">20260810001234</span></div>' +
+                '<div class="ac-row"><span class="ac-label">\u5f00\u7968\u65f6\u95f4</span><span class="ac-val">2026-08-08</span></div>' +
+                '<div class="ac-row"><span class="ac-label">\u5ba2\u6237\u65b9\u540d\u79f0</span><span class="ac-val">\u661f\u8fb0\u4fe1\u606f\u6280\u672f\u6709\u9650\u516c\u53f8</span></div>' +
+                '<div class="ac-row"><span class="ac-label">\u5f00\u7968\u7c7b\u578b</span><span class="ac-val">\u589e\u503c\u7a0e\u4e13\u7528\u53d1\u7968</span></div>' +
+                '<div class="ac-row"><span class="ac-label">\u521b\u5efa\u4eba</span><span class="ac-val">\u5f20\u4e09</span></div>' +
+              '</div>' +
+              '<div class="ac-expand">\u5c55\u5f00 \u25bc</div>' +
+            '</div>';
+            document.getElementById('s2CardWrap').innerHTML = card;
+            s2UpdateCardCount();
+            document.getElementById('s2ParentNote').style.display = 'flex';
+          }, 600);
+        }, 1200);
+      }, 1200);
     }, 1200);
-    setTimeout(function() {
-      items[1].querySelector('.right-side').innerHTML = '<span class="st-text ok">已完成</span><div class="step-check">✓</div>';
-      items[2].querySelector('.right-side').innerHTML = '<span class="st-text">处理中</span><div class="step-spinner"></div>';
-    }, 2400);
-    setTimeout(function() {
-      items[2].querySelector('.right-side').innerHTML = '<span class="st-text ok">已完成</span><div class="step-check">✓</div>';
-      // 完成后关闭 sheet 并新增资产卡片
-      setTimeout(function() {
-        s2CloseSheet();
-        var card = '<div class="asset-card ac-card-item">' +
-          '<button class="ac-del" onclick="s2DeleteCard(this)">×</button>' +
-          '<div class="ac-body">' +
-            '<div class="ac-row"><span class="ac-label">发票号码</span><span class="ac-val">20260810001234</span></div>' +
-            '<div class="ac-row"><span class="ac-label">开票时间</span><span class="ac-val">2026-08-08</span></div>' +
-            '<div class="ac-row"><span class="ac-label">客户方名称</span><span class="ac-val">星辰信息技术有限公司</span></div>' +
-            '<div class="ac-row"><span class="ac-label">开票类型</span><span class="ac-val">增值税专用发票</span></div>' +
-            '<div class="ac-row"><span class="ac-label">创建人</span><span class="ac-val">张三</span></div>' +
-          '</div>' +
-          '<div class="ac-expand">展开 ▼</div>' +
-        '</div>';
-        document.getElementById('s2CardWrap').innerHTML = card;
-        s2UpdateCardCount();
-        document.getElementById('s2ParentNote').style.display = 'flex';
-      }, 600);
-    }, 3600);
   }
+
+  function updateSheetTitle(title) {
+    var hd = document.querySelector('#s2Sheet .sheet-title');
+    if (hd) hd.textContent = title;
+  }
+
+  function s2ShowErrFoot(msg) {
+    var foot = document.getElementById('s2ErrFoot');
+    foot.classList.add('show');
+    document.getElementById('s2ErrMsg').textContent = msg;
+  }
+
+  function s2Retry() {
+    s2CloseSheet();
+    setTimeout(function() { s2Trigger('success'); }, 400);
+  }
+
   function s2CloseSheet() {
-    document.getElementById('s2Sheet').classList.remove('show');
+    if (s2SheetTimer) { clearTimeout(s2SheetTimer); s2SheetTimer = null; }
+    var sheet = document.getElementById('s2Sheet');
+    if (sheet) sheet.classList.remove('show');
+    document.getElementById('s2ErrFoot').classList.remove('show');
     s2SheetOpen = false;
   }
   function s2Reset() {
     s2CloseSheet();
     document.getElementById('s2CardWrap').innerHTML =
-      '<div class="asset-card"><div class="ac-empty">暂无发票数据，点击"添加"上传</div></div>';
+      '<div class="asset-card"><div class="ac-empty">\u6682\u65e0\u53d1\u7968\u6570\u636e\uff0c\u70b9\u51fb\u201c\u6dfb\u52a0\u201d\u4e0a\u4f20</div></div>';
     document.getElementById('s2CardCount').textContent = '(0)';
     document.getElementById('s2ParentNote').style.display = 'none';
   }
