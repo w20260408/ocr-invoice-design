@@ -204,21 +204,27 @@
     height: 100%; background: #409eff; transition: width .3s ease;
   }
 
-  /* 场景一顶部 AI 浮层（右下角极简提示） */
+  /* 场景一右下角 AI 浮层（仿 APP 极简提示） */
   .s1-mini-float {
-    position: absolute; bottom: 16px; right: 16px; z-index: 11;
-    background: rgba(30,30,30,.92); color: #fff;
-    border-radius: 8px; padding: 8px 14px;
+    position: absolute; bottom: 20px; right: 20px; z-index: 11;
+    background: rgba(30,30,30,.94); color: #fff;
+    border-radius: 20px; padding: 9px 16px;
     display: none; align-items: center; gap: 8px;
     font-size: 12px; font-weight: 500;
-    box-shadow: 0 4px 16px rgba(0,0,0,.22);
+    box-shadow: 0 4px 20px rgba(0,0,0,.25);
     pointer-events: none;
+    animation: popIn .3s ease;
   }
   .s1-mini-float.show { display: flex; }
+  @keyframes popIn { from { transform: scale(.85) translateY(6px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
   .s1-mini-float .mf-spinner {
     width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.25);
     border-top-color: #409eff; border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0;
   }
+  .s1-mini-float .mf-icon { font-size: 14px; flex-shrink: 0; }
+  .s1-mini-float.success { background: rgba(103,194,58,.94); }
+  .s1-mini-float.warning { background: rgba(230,162,60,.94); }
+  .s1-mini-float.error { background: rgba(245,108,108,.94); }
 
   /* 顶部 AI 识别条（插件 iframe） */
   .ai-bar {
@@ -487,12 +493,6 @@
           <div class="right"><span>🔔</span><span>👤</span><button class="btn-primary">提交</button></div>
         </div>
         <div class="page" id="s1Page">
-          <!-- AI 识别条（插件 iframe） -->
-          <div class="ai-bar processing" id="s1Bar">
-            <span class="spinner"></span>
-            <span id="s1BarText">正在识别发票，请稍候...</span>
-          </div>
-
           <div class="annotation native">📄 原生页面 · 工单表单</div>
           <div class="card">
             <div class="card-title">工单模板：发票模板</div>
@@ -555,7 +555,8 @@
 
           <!-- AI 浮层（右下角） -->
           <div class="s1-mini-float" id="s1Float">
-            <div class="mf-spinner"></div><span>AI 识别中...</span>
+            <div class="mf-spinner" id="s1FloatSpinner"></div>
+            <span id="s1FloatText">AI 识别中...</span>
           </div>
 
 
@@ -565,7 +566,7 @@
   </div>
 
   <div class="flow">
-    <b>数据流：</b>用户点击附件区域上传发票 → 附件写入工单字段 → 系统触发自定义插件（iframe 顶部横条）→ OCR 识别 → 插件 postMessage({type:'ocr-result'}) → 父页面将字段回填到工单表单 → 横条自动消失。
+    <b>数据流：</b>用户点击附件区域上传发票 → 附件写入工单字段 → 系统触发自定义插件（右下角浮层）→ OCR 识别 → 插件 postMessage({type:'ocr-result'}) → 父页面将字段回填到工单表单 → 浮层自动消失。
   </div>
   <div class="controls">
     <button class="primary" onclick="s1Run('success')">模拟：识别成功并回填</button>
@@ -793,15 +794,12 @@
   var S1_FIELDS = ['name','no','date','buyer','seller','item','qty','spec','unit','price','tax','amount','taxRate','total','issuer'];
 
   function s1SetBar(cls, text) {
-    var bar = document.getElementById('s1Bar');
-    bar.className = 'ai-bar ' + cls + ' show';
-    document.getElementById('s1BarText').textContent = text;
+    // 已废弃：顶部黄条已移除，改用右下角浮层 s1SetFloat()
   }
   function s1HideBar() {
-    document.getElementById('s1Bar').classList.remove('show');
+    // 已废弃：顶部黄条已移除，改用右下角浮层 s1HideFloat()
   }
   function s1Reset() {
-    s1HideBar();
     s1HideFloat();
     s1ResetThumbs();
     s1ResetFiles();
@@ -926,8 +924,44 @@
   }
 
   /* 浮层 */
-  function s1ShowFloat() { document.getElementById('s1Float').classList.add('show'); }
-  function s1HideFloat() { document.getElementById('s1Float').classList.remove('show'); }
+  function s1SetFloat(cls, iconHtml, text) {
+    var flt = document.getElementById('s1Float');
+    var sp = document.getElementById('s1FloatSpinner');
+    var tx = document.getElementById('s1FloatText');
+    if (!flt || !tx) return;
+    // 重置
+    flt.className = 's1-mini-float show';
+    if (sp) sp.style.display = 'none';
+    if (cls) flt.classList.add(cls);
+    if (iconHtml) {
+      if (sp) { sp.style.display = 'block'; sp.className = 'mf-spinner'; sp.innerHTML = iconHtml; }
+      // 如果 icon 不是 spinner，需要特殊处理
+      if (iconHtml.indexOf('spinner') === -1) {
+        if (sp) { sp.className = 'mf-icon'; sp.style.display = 'inline'; }
+      }
+    }
+    tx.textContent = text || '';
+  }
+  function s1ShowFloat() {
+    var flt = document.getElementById('s1Float');
+    if (flt) flt.className = 's1-mini-float show';
+  }
+  function s1HideFloat() {
+    var flt = document.getElementById('s1Float');
+    if (flt) {
+      flt.classList.remove('show');
+      flt.className = 's1-mini-float';
+    }
+  }
+  function s1ShowFloatWithSpinner(text) {
+    var flt = document.getElementById('s1Float');
+    var sp = document.getElementById('s1FloatSpinner');
+    var tx = document.getElementById('s1FloatText');
+    if (!flt || !tx) return;
+    flt.className = 's1-mini-float show';
+    if (sp) { sp.className = 'mf-spinner'; sp.style.display = 'block'; sp.innerHTML = ''; }
+    tx.textContent = text || 'AI 识别中...';
+  }
 
   function s1Upload() {
     s1Run('success');
@@ -937,31 +971,49 @@
     s1Reset();
     // 阶段 1：上传中
     s1SetThumbUploading();
-    s1SetBar('processing', '正在上传附件...');
-    s1ShowFloat();
+    s1ShowFloatWithSpinner('正在上传附件...');
 
     setTimeout(function() {
       // 阶段 2：识别中
       s1SetThumbParsing();
-      s1SetBar('processing', '正在识别发票，请稍候...');
+      s1ShowFloatWithSpinner('AI 识别中...');
 
       setTimeout(function() {
-        s1HideFloat();
         if (type === 'success') {
-          s1SetBar('success', '识别完成，已自动回填');
+          s1HideFloat();
           s1SetThumbSuccess();
           s1SetFileStatus('ok');
           S1_FIELDS.forEach(function(k) {
             var el = document.getElementById('s1-' + k);
             if (el && MOCK[k]) { el.value = MOCK[k]; el.className = ''; }
           });
-          setTimeout(s1HideBar, 2000);
+          // 短暂闪现成功浮层
+          setTimeout(function() {
+            var flt = document.getElementById('s1Float');
+            if (flt) { flt.className = 's1-mini-float success show'; }
+            var sp = document.getElementById('s1FloatSpinner');
+            var tx = document.getElementById('s1FloatText');
+            if (sp) { sp.className = 'mf-icon'; sp.style.display = 'inline'; sp.innerHTML = '\u2713'; }
+            if (tx) tx.textContent = '识别完成';
+            setTimeout(s1HideFloat, 1500);
+          }, 200);
         } else if (type === 'duplicate') {
-          s1SetBar('duplicate', '发票已存在，请勿重复上传');
+          var flt = document.getElementById('s1Float');
+          if (flt) { flt.className = 's1-mini-float warning show'; }
+          var sp = document.getElementById('s1FloatSpinner');
+          var tx = document.getElementById('s1FloatText');
+          if (sp) { sp.className = 'mf-icon'; sp.style.display = 'inline'; sp.innerHTML = '\u26A0'; }
+          if (tx) tx.textContent = '发票已存在，请勿重复上传';
           s1SetThumbDuplicate();
           s1SetFileStatus('dup');
+          setTimeout(s1HideFloat, 2000);
         } else {
-          s1SetBar('error', '识别失败：图片模糊，无法识别');
+          var flt2 = document.getElementById('s1Float');
+          if (flt2) { flt2.className = 's1-mini-float error show'; }
+          var sp2 = document.getElementById('s1FloatSpinner');
+          var tx2 = document.getElementById('s1FloatText');
+          if (sp2) { sp2.className = 'mf-icon'; sp2.style.display = 'inline'; sp2.innerHTML = '\u2717'; }
+          if (tx2) tx2.textContent = '识别失败：图片模糊';
           s1SetThumbError();
           s1SetFileStatus('err');
         }
