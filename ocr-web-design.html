@@ -599,11 +599,6 @@
           <div class="right"><span>🔔</span><span>👤</span><button class="btn-primary">提交</button></div>
         </div>
         <div class="page" id="s2Page">
-          <div class="ai-bar processing" id="s2Bar">
-            <span class="spinner"></span>
-            <span id="s2BarText">正在识别发票，请稍候...</span>
-          </div>
-
           <div class="annotation native">📄 原生页面 · 工单表单 + 资产子表</div>
           <div class="card">
             <div class="card-title">工单模板：发票模板</div>
@@ -616,23 +611,52 @@
             </div>
           </div>
 
-          <div class="annotation data">📎 附件上传在工单，但 OCR 结果写入下方“发票资产表”</div>
+          <div class="annotation data">📎 附件上传在工单，但 OCR 结果写入下方"发票资产表"</div>
           <div class="card">
-            <div class="attach-area upload-target" style="margin-bottom:14px;" onclick="s2Upload()" title="点击上传发票">
-              <div class="head"><span class="label">附件</span></div>
-              <div id="s2AttachList">
-                <span class="attach-item"><span>🖼️</span>发票_001.jpg <span style="color:#b0b6c1">· 248KB</span><span class="del">✕</span></span>
+            <div class="s1-attach-section">
+              <div class="s1-attach-title">附件</div>
+              <div class="s1-attach-toolbar">
+                <div class="s1-upload-trigger" onclick="s2Upload()">
+                  <span class="plus">+</span>
+                  <span>点此上传文件，文件15M以内</span>
+                </div>
+                <div class="s1-file-list" id="s2FileList">
+                  <div class="s1-file-item" id="s2File0" data-type="pdf">
+                    <span class="icon">📁</span>
+                    <span class="name">testtest.pdf</span>
+                    <span class="del" onclick="s2DeleteFile(event, 's2File0')">✕</span>
+                  </div>
+                </div>
               </div>
-              <div class="drop-hint">📎 点击此处上传发票（jpg、png、pdf）</div>
+              <div class="s1-thumb-grid" id="s2ThumbGrid">
+                <div class="s1-thumb" id="s2Thumb0">
+                  <div class="bg"></div>
+                  <div class="del" onclick="s2DeleteThumb(event, 0)">−</div>
+                  <div class="corner-tag" id="s2Tag0"></div>
+                  <div class="overlay" id="s2Ovl0"></div>
+                </div>
+                <div class="s1-thumb" id="s2Thumb1">
+                  <div class="bg b2"></div>
+                  <div class="del" onclick="s2DeleteThumb(event, 1)">−</div>
+                  <div class="corner-tag" id="s2Tag1"></div>
+                  <div class="overlay" id="s2Ovl1"></div>
+                </div>
+              </div>
             </div>
 
-            <div style="font-size:13px;font-weight:600;margin-bottom:8px;">发票资产 (1)</div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px;margin-top:14px;">发票资产 (1)</div>
             <table class="asset-table" id="s2Table">
               <thead><tr><th>发票号码</th><th>开票时间</th><th>客户方名称</th><th>开票类型</th><th>金额</th><th>创建人</th><th>操作</th></tr></thead>
               <tbody>
                 <tr id="s2EmptyRow"><td colspan="7" class="empty">暂无资产数据</td></tr>
               </tbody>
             </table>
+          </div>
+
+          <!-- AI 浮层（右下角） -->
+          <div class="s1-mini-float" id="s2Float">
+            <div class="mf-spinner" id="s2FloatSpinner"></div>
+            <span id="s2FloatText">AI 识别中...</span>
           </div>
 
           <div class="annotation parent" id="s2ParentNote" style="display:none;">✨ 父页面 DOM：子表新增资产记录</div>
@@ -642,7 +666,7 @@
   </div>
 
   <div class="flow">
-    <b>数据流：</b>用户在工单"附件"区点击上传发票 → 触发 OCR 插件 → 识别成功后插件 postMessage 返回结构化数据 → 父页面在"工单资产表"中新增一行 → 工单主表"金额合计"同步更新 → 顶部横条消失。
+    <b>数据流：</b>用户在工单"附件"区点击上传发票 → 触发 OCR 插件 → 识别成功后插件 postMessage 返回结构化数据 → 父页面在"工单资产表"中新增一行 → 工单主表"金额合计"同步更新 → 浮层消失。
   </div>
   <div class="controls">
     <button class="primary" onclick="s2Run('success')">模拟：识别成功新增资产</button>
@@ -1007,14 +1031,139 @@
   }
 
   /* ===== 场景二 ===== */
-  function s2SetBar(cls, text) {
-    var bar = document.getElementById('s2Bar');
-    bar.className = 'ai-bar ' + cls + ' show';
-    document.getElementById('s2BarText').textContent = text;
+  function s2GetThumbs() {
+    return Array.from(document.querySelectorAll('#s2ThumbGrid .s1-thumb'));
   }
-  function s2HideBar() { document.getElementById('s2Bar').classList.remove('show'); }
+  function s2GetFileItems() {
+    return Array.from(document.querySelectorAll('#s2FileList .s1-file-item'));
+  }
+
+  function s2ResetThumbs() {
+    s2GetThumbs().forEach(function(thumb) {
+      var ovl = thumb.querySelector('.overlay');
+      var tag = thumb.querySelector('.corner-tag');
+      if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
+      if (tag) { tag.className = 'corner-tag'; tag.textContent = ''; }
+    });
+  }
+  function s2ResetFiles() {
+    s2GetFileItems().forEach(function(item) {
+      var tag = item.querySelector('.status-tag');
+      if (tag) tag.remove();
+    });
+  }
+
+  function s2SetFileStatus(type) {
+    s2GetFileItems().forEach(function(item) {
+      var old = item.querySelector('.status-tag');
+      if (old) old.remove();
+      var tag = document.createElement('span');
+      tag.className = 'status-tag ' + type;
+      if (type === 'ok') tag.textContent = '识别成功';
+      else if (type === 'dup') tag.textContent = '已重复';
+      else if (type === 'err') tag.textContent = '识别失败';
+      item.appendChild(tag);
+    });
+  }
+
+  function s2SetThumbUploading() {
+    s2GetThumbs().forEach(function(thumb, idx) {
+      setTimeout(function() {
+        var ovl = thumb.querySelector('.overlay');
+        if (ovl) {
+          ovl.className = 'overlay dark';
+          ovl.innerHTML = '<div class="spinner"></div><span>上传中</span><div class="progress"><div class="fill" style="width:0%" id="s2Prog' + idx + '"></div></div>';
+        }
+        var w = 0;
+        var ti = setInterval(function() {
+          w += 25;
+          var bar = document.getElementById('s2Prog' + idx);
+          if (bar) bar.style.width = w + '%';
+          if (w >= 100) clearInterval(ti);
+        }, 100);
+      }, idx * 200);
+    });
+  }
+
+  function s2SetThumbParsing() {
+    s2GetThumbs().forEach(function(thumb) {
+      var ovl = thumb.querySelector('.overlay');
+      if (ovl) {
+        ovl.className = 'overlay dark';
+        ovl.innerHTML = '<div class="spinner"></div><span>识别中</span>';
+      }
+    });
+  }
+
+  function s2SetThumbSuccess() {
+    s2GetThumbs().forEach(function(thumb) {
+      var ovl = thumb.querySelector('.overlay');
+      var tag = thumb.querySelector('.corner-tag');
+      if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
+      if (tag) { tag.className = 'corner-tag ok'; tag.textContent = '\u2713'; }
+    });
+  }
+
+  function s2SetThumbDuplicate() {
+    s2GetThumbs().forEach(function(thumb) {
+      var ovl = thumb.querySelector('.overlay');
+      var tag = thumb.querySelector('.corner-tag');
+      if (ovl) { ovl.className = 'overlay dup'; ovl.innerHTML = '<span style="font-size:11px;">\u26A0 已重复</span>'; }
+      if (tag) { tag.className = 'corner-tag fail'; tag.textContent = '!'; }
+    });
+  }
+
+  function s2SetThumbError() {
+    s2GetThumbs().forEach(function(thumb) {
+      var ovl = thumb.querySelector('.overlay');
+      var tag = thumb.querySelector('.corner-tag');
+      if (ovl) { ovl.className = 'overlay fail'; ovl.innerHTML = '<span style="font-size:10px;">\u2717 识别失败</span><span style="font-size:9px;opacity:.8;margin-top:3px;">图片模糊</span>'; }
+      if (tag) { tag.className = 'corner-tag fail'; tag.textContent = '\u2717'; }
+    });
+  }
+
+  function s2DeleteThumb(e, idx) {
+    if (e) e.stopPropagation();
+    var thumb = document.getElementById('s2Thumb' + idx);
+    if (thumb) {
+      thumb.style.opacity = '0';
+      thumb.style.transform = 'scale(.9)';
+      setTimeout(function() { thumb.remove(); }, 200);
+    }
+  }
+
+  function s2DeleteFile(e, id) {
+    if (e) e.stopPropagation();
+    var item = document.getElementById(id);
+    if (item) {
+      item.style.opacity = '0';
+      item.style.transform = 'translateX(-10px)';
+      setTimeout(function() { item.remove(); }, 200);
+    }
+  }
+
+  /* 浮层 */
+  function s2ShowFloatWithSpinner(text) {
+    var flt = document.getElementById('s2Float');
+    var sp = document.getElementById('s2FloatSpinner');
+    var tx = document.getElementById('s2FloatText');
+    if (!flt || !tx) return;
+    flt.className = 's1-mini-float show';
+    if (sp) { sp.className = 'mf-spinner'; sp.style.display = 'block'; sp.innerHTML = ''; }
+    tx.textContent = text || 'AI 识别中...';
+  }
+  function s2HideFloat() {
+    var flt = document.getElementById('s2Float');
+    if (flt) {
+      flt.classList.remove('show');
+      flt.className = 's1-mini-float';
+    }
+  }
+
   function s2Reset() {
-    s2HideBar();
+    s2HideFloat();
+    s2ResetThumbs();
+    s2ResetFiles();
     document.getElementById('s2Table').querySelector('tbody').innerHTML = '<tr id="s2EmptyRow"><td colspan="7" class="empty">暂无资产数据</td></tr>';
     document.getElementById('s2TotalAmount').value = '-';
     document.getElementById('s2ParentNote').style.display = 'none';
@@ -1024,21 +1173,41 @@
   }
   function s2Run(type) {
     s2Reset();
-    s2SetBar('processing', '正在识别发票，请稍候...');
+    // 阶段 1：上传中 → 缩略图更新
+    s2SetThumbUploading();
+
     setTimeout(function() {
-      if (type === 'success') {
-        s2SetBar('success', '识别完成，已新增资产记录');
-        document.getElementById('s2Table').querySelector('tbody').innerHTML =
-          '<tr class="new-row"><td>12345678</td><td>2026-07-15</td><td>阳光综合医院有限公司</td><td>增值税专用发票</td><td>¥5,650.00</td><td>张三</td><td><span class="op">编辑</span> <span class="op">删除</span></td></tr>';
-        document.getElementById('s2TotalAmount').value = '¥5,650.00';
-        document.getElementById('s2ParentNote').style.display = 'inline-flex';
-        setTimeout(s2HideBar, 1500);
-      } else if (type === 'duplicate') {
-        s2SetBar('duplicate', '发票已存在，请勿重复上传');
-      } else {
-        s2SetBar('error', '识别失败：OCR 服务暂不可用');
-      }
-    }, 1200);
+      // 阶段 2：识别中 → 显示浮层
+      s2SetThumbParsing();
+      s2ShowFloatWithSpinner('AI 识别中...');
+
+      setTimeout(function() {
+        if (type === 'success') {
+          s2SetThumbSuccess();
+          s2SetFileStatus('ok');
+          document.getElementById('s2Table').querySelector('tbody').innerHTML =
+            '<tr class="new-row"><td>12345678</td><td>2026-07-15</td><td>阳光综合医院有限公司</td><td>增值税专用发票</td><td>¥5,650.00</td><td>张三</td><td><span class="op">编辑</span> <span class="op">删除</span></td></tr>';
+          document.getElementById('s2TotalAmount').value = '¥5,650.00';
+          document.getElementById('s2ParentNote').style.display = 'inline-flex';
+          // 闪现「识别完成」
+          var flt = document.getElementById('s2Float');
+          if (flt) { flt.className = 's1-mini-float success show'; }
+          var sp = document.getElementById('s2FloatSpinner');
+          var tx = document.getElementById('s2FloatText');
+          if (sp) { sp.className = 'mf-icon'; sp.style.display = 'inline'; sp.innerHTML = '\u2713'; }
+          if (tx) tx.textContent = '识别完成';
+          setTimeout(s2HideFloat, 1500);
+        } else if (type === 'duplicate') {
+          s2HideFloat();
+          s2SetThumbDuplicate();
+          s2SetFileStatus('dup');
+        } else {
+          s2HideFloat();
+          s2SetThumbError();
+          s2SetFileStatus('err');
+        }
+      }, 1500);
+    }, 1000);
   }
 
   /* ===== 场景三 ===== */
