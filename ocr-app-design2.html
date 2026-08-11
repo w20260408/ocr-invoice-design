@@ -78,16 +78,6 @@
   .annotation.iframe { background: rgba(230,162,60,.08); color: #e6a23c; }
   .annotation.parent { background: rgba(245,108,108,.08); color: #f56c6c; }
 
-  /* ===== Toast ===== */
-  .toast {
-    margin: 8px 12px; padding: 10px 12px; background: #f56c6c; color: #fff;
-    border-radius: 8px; font-size: 12px; display: none; align-items: center; gap: 8px;
-    box-shadow: 0 2px 12px rgba(245,108,108,.25); position: relative; z-index: 5;
-    animation: toastIn .3s ease;
-  }
-  @keyframes toastIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
-  .toast.show { display: flex; }
-
   /* ===== 附件缩略图 ===== */
   .att-section { padding: 0 12px 12px; }
   .att-label { font-size: 13px; color: #666; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
@@ -399,7 +389,7 @@
     <div class="legend-item"><span class="dot native"></span>原生页面元素</div>
     <div class="legend-item"><span class="dot data"></span>插件修改字段/附件数据</div>
     <div class="legend-item"><span class="dot iframe"></span>插件 iframe UI（浮层/Sheet/弹窗）</div>
-    <div class="legend-item"><span class="dot parent"></span>父页面 DOM（toast/提示 由 postMessage 触发）</div>
+    <div class="legend-item"><span class="dot parent"></span>父页面 DOM（字段/缩略图状态 由 postMessage 触发）</div>
   </div>
 </div>
 
@@ -415,12 +405,6 @@
       <div class="status-bar"><span>11:00</span><span style="display:flex;gap:4px;">5G ▮▮▮▮ ⚡</span></div>
       <div class="nav"><span class="back">‹</span><span>新建工单</span></div>
       <div class="content" id="s1Content">
-
-        <!-- Toast: 父页面 DOM -->
-        <div class="toast" id="s1Toast">
-          <span style="font-size:16px;">⚠️</span>
-          <span>发票识别失败，请检查图片清晰度后重新上传</span>
-        </div>
 
         <!-- 表单：原生页面 -->
         <div class="annotation native">📄 原生页面 · 工单表单</div>
@@ -462,7 +446,7 @@
 
         <!-- 总结条: 父页面 DOM -->
         <div class="annotation parent" id="s1Summary" style="display:none;">
-          📢 父页面 DOM：插件 postMessage → 更新 toast
+          📢 父页面 DOM：插件 postMessage → 更新字段 / 缩略图状态
         </div>
 
         <!-- 插件 iframe 极简浮层 -->
@@ -690,7 +674,6 @@
     var ovl3 = document.getElementById('s1Ovl3');
     var tag2 = document.getElementById('s1Tag2');
     var tag3 = document.getElementById('s1Tag3');
-    var toast = document.getElementById('s1Toast');
     var flt  = document.getElementById('s1Float');
     var sum  = document.getElementById('s1Summary');
     var no   = document.getElementById('s1No');
@@ -701,7 +684,6 @@
     // reset
     [ovl1,ovl2,ovl3].forEach(function(o){ o.className='overlay'; o.innerHTML=''; });
     tag2.className='corner-tag'; tag3.className='corner-tag';
-    toast.className='toast';
     flt.className='mini-float'; sum.style.display='none';
     [no,amt,seller,date].forEach(function(e){ e.className='form-input'; e.value=''; e.placeholder='识别后自动填入'; });
 
@@ -721,22 +703,20 @@
       seller.className='form-input filled'; seller.value='星辰信息技术有限公司';
       date.className='form-input filled'; date.value='2026-08-08';
     } else if (s1State === 2) {
-      // 混合：1成功 1识别中 1模糊失败 + toast
+      // 混合：1成功 1识别中 1模糊失败
       ovl1.innerHTML='';
       ovl2.className='overlay dark'; ovl2.innerHTML='<div class="spinner"></div><span>识别中</span>';
       ovl3.className='overlay fail'; ovl3.innerHTML='<span style="font-size:10px;">× 图片模糊</span>';
       tag2.className='corner-tag ok';
       tag3.className='corner-tag fail';
-      toast.className='toast show';
       flt.className='mini-float show';
       sum.style.display='flex';
     } else {
-      // 关键业务失败：发票识别失败 + toast
+      // 关键业务失败：全部识别失败
       ovl1.className='overlay fail'; ovl1.innerHTML='<span style="font-size:10px;">× 识别失败</span>';
       ovl2.className='overlay fail'; ovl2.innerHTML='<span style="font-size:10px;">× 格式不符</span>';
       ovl3.className='overlay fail'; ovl3.innerHTML='<span style="font-size:10px;">× 图片模糊</span>';
       tag2.className='corner-tag fail'; tag3.className='corner-tag fail';
-      toast.className='toast show';
       flt.className='mini-float';
       sum.style.display='flex';
     }
