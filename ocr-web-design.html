@@ -969,51 +969,36 @@
 
   function s1Run(type) {
     s1Reset();
-    // 阶段 1：上传中
+    // 阶段 1：上传中 → 缩略图更新时不显示浮层
     s1SetThumbUploading();
-    s1ShowFloatWithSpinner('正在上传附件...');
 
     setTimeout(function() {
-      // 阶段 2：识别中
+      // 阶段 2：识别中 → 显示浮层
       s1SetThumbParsing();
       s1ShowFloatWithSpinner('AI 识别中...');
 
       setTimeout(function() {
         if (type === 'success') {
-          s1HideFloat();
           s1SetThumbSuccess();
           s1SetFileStatus('ok');
           S1_FIELDS.forEach(function(k) {
             var el = document.getElementById('s1-' + k);
             if (el && MOCK[k]) { el.value = MOCK[k]; el.className = ''; }
           });
-          // 短暂闪现成功浮层
-          setTimeout(function() {
-            var flt = document.getElementById('s1Float');
-            if (flt) { flt.className = 's1-mini-float success show'; }
-            var sp = document.getElementById('s1FloatSpinner');
-            var tx = document.getElementById('s1FloatText');
-            if (sp) { sp.className = 'mf-icon'; sp.style.display = 'inline'; sp.innerHTML = '\u2713'; }
-            if (tx) tx.textContent = '识别完成';
-            setTimeout(s1HideFloat, 1500);
-          }, 200);
-        } else if (type === 'duplicate') {
+          // 闪现「识别完成」
           var flt = document.getElementById('s1Float');
-          if (flt) { flt.className = 's1-mini-float warning show'; }
+          if (flt) { flt.className = 's1-mini-float success show'; }
           var sp = document.getElementById('s1FloatSpinner');
           var tx = document.getElementById('s1FloatText');
-          if (sp) { sp.className = 'mf-icon'; sp.style.display = 'inline'; sp.innerHTML = '\u26A0'; }
-          if (tx) tx.textContent = '发票已存在，请勿重复上传';
+          if (sp) { sp.className = 'mf-icon'; sp.style.display = 'inline'; sp.innerHTML = '\u2713'; }
+          if (tx) tx.textContent = '识别完成';
+          setTimeout(s1HideFloat, 1500);
+        } else if (type === 'duplicate') {
+          s1HideFloat();
           s1SetThumbDuplicate();
           s1SetFileStatus('dup');
-          setTimeout(s1HideFloat, 2000);
         } else {
-          var flt2 = document.getElementById('s1Float');
-          if (flt2) { flt2.className = 's1-mini-float error show'; }
-          var sp2 = document.getElementById('s1FloatSpinner');
-          var tx2 = document.getElementById('s1FloatText');
-          if (sp2) { sp2.className = 'mf-icon'; sp2.style.display = 'inline'; sp2.innerHTML = '\u2717'; }
-          if (tx2) tx2.textContent = '识别失败：图片模糊';
+          s1HideFloat();
           s1SetThumbError();
           s1SetFileStatus('err');
         }
