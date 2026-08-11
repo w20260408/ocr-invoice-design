@@ -106,18 +106,64 @@
   }
   .attach-item .del { cursor: pointer; color: #c0c4cc; }
 
-  /* ===== 场景一附件缩略图 ===== */
-  .s1-thumb-wrapper { margin-bottom: 10px; }
-  .s1-thumb-wrapper .s1-attach-head {
-    display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+  /* ===== 场景一附件区（真实样式） ===== */
+  .s1-attach-section {}
+  .s1-attach-title {
+    font-size: 13px; color: #303133; font-weight: 500; margin-bottom: 10px;
   }
-  .s1-thumb-wrapper .s1-attach-head .label { font-size: 12px; color: #666; }
+  .s1-attach-toolbar {
+    display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;
+  }
+  .s1-upload-trigger {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border: 1px dashed #c0c4cc; border-radius: 4px;
+    background: #fafbfc; color: #909399; font-size: 12px; cursor: pointer;
+    transition: all .2s; flex-shrink: 0; white-space: nowrap;
+  }
+  .s1-upload-trigger:hover {
+    border-color: #409eff; color: #409eff; background: #f0f7ff;
+  }
+  .s1-upload-trigger .plus {
+    font-size: 14px; font-weight: 500;
+  }
+  .s1-file-list {
+    display: flex; flex-wrap: wrap; gap: 8px; flex: 1;
+  }
+  .s1-file-item {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border: 1px solid #e4e7ed; border-radius: 4px;
+    background: #fff; font-size: 12px; color: #606266; max-width: 220px;
+    transition: all .2s; position: relative;
+  }
+  .s1-file-item:hover { border-color: #409eff; }
+  .s1-file-item .icon {
+    width: 18px; height: 18px; border-radius: 2px;
+    background: #e6f2ff; color: #409eff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; flex-shrink: 0;
+  }
+  .s1-file-item .name {
+    flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .s1-file-item .del {
+    color: #c0c4cc; cursor: pointer; font-size: 12px; padding: 2px;
+    transition: color .2s; flex-shrink: 0;
+  }
+  .s1-file-item .del:hover { color: #f56c6c; }
+  .s1-file-item .status-tag {
+    font-size: 10px; padding: 1px 5px; border-radius: 8px; margin-left: 4px;
+  }
+  .s1-file-item .status-tag.ok { background: #f0f9eb; color: #67c23a; }
+  .s1-file-item .status-tag.dup { background: #fdf6ec; color: #e6a23c; }
+  .s1-file-item .status-tag.err { background: #fef0f0; color: #f56c6c; }
+
   .s1-thumb-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;
   }
   .s1-thumb {
-    position: relative; aspect-ratio: 4/3; border-radius: 6px; overflow: hidden;
+    position: relative; aspect-ratio: 4/3; border-radius: 4px; overflow: hidden;
     background: #e4e7ed; cursor: pointer; transition: transform .15s, box-shadow .15s;
+    border: 1px solid #e4e7ed;
   }
   .s1-thumb:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.1); }
   .s1-thumb .bg {
@@ -144,12 +190,13 @@
   .s1-thumb .corner-tag.ok { background: #67c23a; display: flex; }
   .s1-thumb .corner-tag.fail { background: #f56c6c; display: flex; }
   .s1-thumb .del {
-    position: absolute; top: 4px; left: 4px; width: 20px; height: 20px;
-    border-radius: 50%; background: rgba(0,0,0,.35); color: #fff;
+    position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
+    border-radius: 50%; background: #f56c6c; color: #fff;
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px; cursor: pointer; opacity: 0; transition: opacity .2s; z-index: 3;
+    font-size: 11px; cursor: pointer; transition: all .2s; z-index: 3;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
   }
-  .s1-thumb:hover .del { opacity: 1; }
+  .s1-thumb .del:hover { background: #ff7875; transform: scale(1.08); }
   .s1-thumb .progress {
     position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,.25);
   }
@@ -474,21 +521,31 @@
 
           <div class="annotation data">📎 附件上传后，插件读取附件并调用 OCR</div>
           <div class="card">
-            <div class="s1-thumb-wrapper">
-              <div class="s1-attach-head">
-                <span class="label">附件</span>
-                <button class="upload-btn" onclick="s1Upload()">+ 上传发票</button>
+            <div class="s1-attach-section">
+              <div class="s1-attach-title">附件</div>
+              <div class="s1-attach-toolbar">
+                <div class="s1-upload-trigger" onclick="s1Upload()">
+                  <span class="plus">+</span>
+                  <span>点此上传文件，文件15M以内</span>
+                </div>
+                <div class="s1-file-list" id="s1FileList">
+                  <div class="s1-file-item" id="s1File0" data-type="pdf">
+                    <span class="icon">📁</span>
+                    <span class="name">testtest.pdf</span>
+                    <span class="del" onclick="s1DeleteFile(event, 's1File0')">✕</span>
+                  </div>
+                </div>
               </div>
               <div class="s1-thumb-grid" id="s1ThumbGrid">
                 <div class="s1-thumb" id="s1Thumb0">
                   <div class="bg"></div>
-                  <div class="del" onclick="s1DeleteThumb(event, 0)">✕</div>
+                  <div class="del" onclick="s1DeleteThumb(event, 0)">−</div>
                   <div class="corner-tag" id="s1Tag0"></div>
                   <div class="overlay" id="s1Ovl0"></div>
                 </div>
                 <div class="s1-thumb" id="s1Thumb1">
                   <div class="bg b2"></div>
-                  <div class="del" onclick="s1DeleteThumb(event, 1)">✕</div>
+                  <div class="del" onclick="s1DeleteThumb(event, 1)">−</div>
                   <div class="corner-tag" id="s1Tag1"></div>
                   <div class="overlay" id="s1Ovl1"></div>
                 </div>
@@ -747,80 +804,105 @@
     s1HideBar();
     s1HideFloat();
     s1ResetThumbs();
+    s1ResetFiles();
     S1_FIELDS.forEach(function(k) {
       var el = document.getElementById('s1-' + k);
       if (el) { el.value = ''; el.className = ''; }
     });
   }
 
-  /* 缩略图辅助 */
+  /* 附件状态辅助 */
+  function s1GetThumbs() {
+    return document.querySelectorAll('#s1ThumbGrid .s1-thumb');
+  }
+  function s1GetFileItems() {
+    return document.querySelectorAll('#s1FileList .s1-file-item');
+  }
+
   function s1ResetThumbs() {
-    for (var i = 0; i < 2; i++) {
-      var ovl = document.getElementById('s1Ovl' + i);
-      var tag = document.getElementById('s1Tag' + i);
+    s1GetThumbs().forEach(function(thumb, idx) {
+      var ovl = thumb.querySelector('.overlay');
+      var tag = thumb.querySelector('.corner-tag');
       if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
       if (tag) { tag.className = 'corner-tag'; tag.textContent = ''; }
-    }
+    });
+  }
+
+  function s1ResetFiles() {
+    s1GetFileItems().forEach(function(item) {
+      var tag = item.querySelector('.status-tag');
+      if (tag) tag.remove();
+    });
+  }
+
+  function s1SetFileStatus(type) {
+    s1GetFileItems().forEach(function(item) {
+      var old = item.querySelector('.status-tag');
+      if (old) old.remove();
+      var tag = document.createElement('span');
+      tag.className = 'status-tag ' + type;
+      if (type === 'ok') tag.textContent = '识别成功';
+      else if (type === 'dup') tag.textContent = '已重复';
+      else if (type === 'err') tag.textContent = '识别失败';
+      item.appendChild(tag);
+    });
   }
 
   function s1SetThumbUploading() {
-    var times = [0, 200];
-    for (var i = 0; i < 2; i++) {
-      (function(idx) {
-        setTimeout(function() {
-          var ovl = document.getElementById('s1Ovl' + idx);
-          if (ovl) {
-            ovl.className = 'overlay dark';
-            ovl.innerHTML = '<div class="spinner"></div><span>上传中</span><div class="progress"><div class="fill" style="width:0%" id="s1Prog' + idx + '"></div></div>';
-          }
-          // 进度动画
-          var w = 0;
-          var ti = setInterval(function() {
-            w += 25;
-            var bar = document.getElementById('s1Prog' + idx);
-            if (bar) bar.style.width = w + '%';
-            if (w >= 100) clearInterval(ti);
-          }, 100);
-        }, times[idx]);
-      })(i);
-    }
+    var thumbs = s1GetThumbs();
+    thumbs.forEach(function(thumb, idx) {
+      setTimeout(function() {
+        var ovl = thumb.querySelector('.overlay');
+        if (ovl) {
+          ovl.className = 'overlay dark';
+          ovl.innerHTML = '<div class="spinner"></div><span>上传中</span><div class="progress"><div class="fill" style="width:0%" id="s1Prog' + idx + '"></div></div>';
+        }
+        var w = 0;
+        var ti = setInterval(function() {
+          w += 25;
+          var bar = document.getElementById('s1Prog' + idx);
+          if (bar) bar.style.width = w + '%';
+          if (w >= 100) clearInterval(ti);
+        }, 100);
+      }, idx * 200);
+    });
   }
 
   function s1SetThumbParsing() {
-    for (var i = 0; i < 2; i++) {
-      var ovl = document.getElementById('s1Ovl' + i);
+    s1GetThumbs().forEach(function(thumb) {
+      var ovl = thumb.querySelector('.overlay');
       if (ovl) {
         ovl.className = 'overlay dark';
         ovl.innerHTML = '<div class="spinner"></div><span>识别中</span>';
       }
-    }
+    });
   }
 
   function s1SetThumbSuccess() {
-    for (var i = 0; i < 2; i++) {
-      var ovl = document.getElementById('s1Ovl' + i);
-      var tag = document.getElementById('s1Tag' + i);
+    s1GetThumbs().forEach(function(thumb) {
+      var ovl = thumb.querySelector('.overlay');
+      var tag = thumb.querySelector('.corner-tag');
       if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
       if (tag) { tag.className = 'corner-tag ok'; tag.textContent = '\u2713'; }
-    }
+    });
   }
 
   function s1SetThumbDuplicate() {
-    for (var i = 0; i < 2; i++) {
-      var ovl = document.getElementById('s1Ovl' + i);
-      var tag = document.getElementById('s1Tag' + i);
+    s1GetThumbs().forEach(function(thumb) {
+      var ovl = thumb.querySelector('.overlay');
+      var tag = thumb.querySelector('.corner-tag');
       if (ovl) { ovl.className = 'overlay dup'; ovl.innerHTML = '<span style="font-size:11px;">\u26A0 已重复</span>'; }
       if (tag) { tag.className = 'corner-tag fail'; tag.textContent = '!'; }
-    }
+    });
   }
 
   function s1SetThumbError() {
-    for (var i = 0; i < 2; i++) {
-      var ovl = document.getElementById('s1Ovl' + i);
-      var tag = document.getElementById('s1Tag' + i);
+    s1GetThumbs().forEach(function(thumb) {
+      var ovl = thumb.querySelector('.overlay');
+      var tag = thumb.querySelector('.corner-tag');
       if (ovl) { ovl.className = 'overlay fail'; ovl.innerHTML = '<span style="font-size:10px;">\u2717 识别失败</span><span style="font-size:9px;opacity:.8;margin-top:3px;">图片模糊</span>'; }
       if (tag) { tag.className = 'corner-tag fail'; tag.textContent = '\u2717'; }
-    }
+    });
   }
 
   function s1DeleteThumb(e, idx) {
@@ -830,6 +912,16 @@
       thumb.style.opacity = '0';
       thumb.style.transform = 'scale(.9)';
       setTimeout(function() { thumb.remove(); }, 200);
+    }
+  }
+
+  function s1DeleteFile(e, id) {
+    if (e) e.stopPropagation();
+    var item = document.getElementById(id);
+    if (item) {
+      item.style.opacity = '0';
+      item.style.transform = 'translateX(-10px)';
+      setTimeout(function() { item.remove(); }, 200);
     }
   }
 
@@ -858,6 +950,7 @@
         if (type === 'success') {
           s1SetBar('success', '识别完成，已自动回填');
           s1SetThumbSuccess();
+          s1SetFileStatus('ok');
           S1_FIELDS.forEach(function(k) {
             var el = document.getElementById('s1-' + k);
             if (el && MOCK[k]) { el.value = MOCK[k]; el.className = ''; }
@@ -866,9 +959,11 @@
         } else if (type === 'duplicate') {
           s1SetBar('duplicate', '发票已存在，请勿重复上传');
           s1SetThumbDuplicate();
+          s1SetFileStatus('dup');
         } else {
           s1SetBar('error', '识别失败：图片模糊，无法识别');
           s1SetThumbError();
+          s1SetFileStatus('err');
         }
       }, 1500);
     }, 1000);
