@@ -106,6 +106,73 @@
   }
   .attach-item .del { cursor: pointer; color: #c0c4cc; }
 
+  /* ===== 场景一附件缩略图 ===== */
+  .s1-thumb-wrapper { margin-bottom: 10px; }
+  .s1-thumb-wrapper .s1-attach-head {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+  }
+  .s1-thumb-wrapper .s1-attach-head .label { font-size: 12px; color: #666; }
+  .s1-thumb-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px;
+  }
+  .s1-thumb {
+    position: relative; aspect-ratio: 4/3; border-radius: 6px; overflow: hidden;
+    background: #e4e7ed; cursor: pointer; transition: transform .15s, box-shadow .15s;
+  }
+  .s1-thumb:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+  .s1-thumb .bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #a8c0d6 0%, #6b8cae 100%);
+  }
+  .s1-thumb .bg.b2 { background: linear-gradient(135deg, #f5b88c 0%, #c9824f 100%); }
+  .s1-thumb .overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-size: 11px; color: #fff; text-align: center; padding: 6px;
+  }
+  .s1-thumb .overlay.dark { background: rgba(0,0,0,.55); }
+  .s1-thumb .overlay.fail { background: rgba(245,108,108,.85); }
+  .s1-thumb .overlay.dup  { background: rgba(230,162,60,.85); }
+  .s1-thumb .spinner {
+    width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 4px;
+  }
+  .s1-thumb .corner-tag {
+    position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
+    border-radius: 50%; display: none; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff; z-index: 2;
+  }
+  .s1-thumb .corner-tag.ok { background: #67c23a; display: flex; }
+  .s1-thumb .corner-tag.fail { background: #f56c6c; display: flex; }
+  .s1-thumb .del {
+    position: absolute; top: 4px; left: 4px; width: 20px; height: 20px;
+    border-radius: 50%; background: rgba(0,0,0,.35); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; cursor: pointer; opacity: 0; transition: opacity .2s; z-index: 3;
+  }
+  .s1-thumb:hover .del { opacity: 1; }
+  .s1-thumb .progress {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,.25);
+  }
+  .s1-thumb .progress .fill {
+    height: 100%; background: #409eff; transition: width .3s ease;
+  }
+
+  /* 场景一顶部 AI 浮层（右下角极简提示） */
+  .s1-mini-float {
+    position: absolute; bottom: 16px; right: 16px; z-index: 11;
+    background: rgba(30,30,30,.92); color: #fff;
+    border-radius: 8px; padding: 8px 14px;
+    display: none; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,.22);
+    pointer-events: none;
+  }
+  .s1-mini-float.show { display: flex; }
+  .s1-mini-float .mf-spinner {
+    width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.25);
+    border-top-color: #409eff; border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0;
+  }
+
   /* 顶部 AI 识别条（插件 iframe） */
   .ai-bar {
     position: absolute; top: 0; left: 0; right: 0; height: 0;
@@ -407,13 +474,31 @@
 
           <div class="annotation data">📎 附件上传后，插件读取附件并调用 OCR</div>
           <div class="card">
-            <div class="attach-area upload-target" onclick="s1Upload()" title="点击上传发票">
-              <div class="head"><span class="label">附件</span></div>
-              <div id="s1AttachList">
-                <span class="attach-item"><span>🖼️</span>发票_001.jpg <span style="color:#b0b6c1">· 248KB</span><span class="del">✕</span></span>
+            <div class="s1-thumb-wrapper">
+              <div class="s1-attach-head">
+                <span class="label">附件</span>
+                <button class="upload-btn" onclick="s1Upload()">+ 上传发票</button>
               </div>
-              <div class="drop-hint">📎 点击此处上传发票（jpg、png、pdf）</div>
+              <div class="s1-thumb-grid" id="s1ThumbGrid">
+                <div class="s1-thumb" id="s1Thumb0">
+                  <div class="bg"></div>
+                  <div class="del" onclick="s1DeleteThumb(event, 0)">✕</div>
+                  <div class="corner-tag" id="s1Tag0"></div>
+                  <div class="overlay" id="s1Ovl0"></div>
+                </div>
+                <div class="s1-thumb" id="s1Thumb1">
+                  <div class="bg b2"></div>
+                  <div class="del" onclick="s1DeleteThumb(event, 1)">✕</div>
+                  <div class="corner-tag" id="s1Tag1"></div>
+                  <div class="overlay" id="s1Ovl1"></div>
+                </div>
+              </div>
             </div>
+          </div>
+
+          <!-- AI 浮层（右下角） -->
+          <div class="s1-mini-float" id="s1Float">
+            <div class="mf-spinner"></div><span>AI 识别中...</span>
           </div>
 
 
@@ -660,34 +745,133 @@
   }
   function s1Reset() {
     s1HideBar();
-    S1_FIELDS.forEach(function(k) {
-      var el = document.getElementById('s1-name'); // placeholder
-    });
+    s1HideFloat();
+    s1ResetThumbs();
     S1_FIELDS.forEach(function(k) {
       var el = document.getElementById('s1-' + k);
       if (el) { el.value = ''; el.className = ''; }
     });
   }
+
+  /* 缩略图辅助 */
+  function s1ResetThumbs() {
+    for (var i = 0; i < 2; i++) {
+      var ovl = document.getElementById('s1Ovl' + i);
+      var tag = document.getElementById('s1Tag' + i);
+      if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
+      if (tag) { tag.className = 'corner-tag'; tag.textContent = ''; }
+    }
+  }
+
+  function s1SetThumbUploading() {
+    var times = [0, 200];
+    for (var i = 0; i < 2; i++) {
+      (function(idx) {
+        setTimeout(function() {
+          var ovl = document.getElementById('s1Ovl' + idx);
+          if (ovl) {
+            ovl.className = 'overlay dark';
+            ovl.innerHTML = '<div class="spinner"></div><span>上传中</span><div class="progress"><div class="fill" style="width:0%" id="s1Prog' + idx + '"></div></div>';
+          }
+          // 进度动画
+          var w = 0;
+          var ti = setInterval(function() {
+            w += 25;
+            var bar = document.getElementById('s1Prog' + idx);
+            if (bar) bar.style.width = w + '%';
+            if (w >= 100) clearInterval(ti);
+          }, 100);
+        }, times[idx]);
+      })(i);
+    }
+  }
+
+  function s1SetThumbParsing() {
+    for (var i = 0; i < 2; i++) {
+      var ovl = document.getElementById('s1Ovl' + i);
+      if (ovl) {
+        ovl.className = 'overlay dark';
+        ovl.innerHTML = '<div class="spinner"></div><span>识别中</span>';
+      }
+    }
+  }
+
+  function s1SetThumbSuccess() {
+    for (var i = 0; i < 2; i++) {
+      var ovl = document.getElementById('s1Ovl' + i);
+      var tag = document.getElementById('s1Tag' + i);
+      if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
+      if (tag) { tag.className = 'corner-tag ok'; tag.textContent = '\u2713'; }
+    }
+  }
+
+  function s1SetThumbDuplicate() {
+    for (var i = 0; i < 2; i++) {
+      var ovl = document.getElementById('s1Ovl' + i);
+      var tag = document.getElementById('s1Tag' + i);
+      if (ovl) { ovl.className = 'overlay dup'; ovl.innerHTML = '<span style="font-size:11px;">\u26A0 已重复</span>'; }
+      if (tag) { tag.className = 'corner-tag fail'; tag.textContent = '!'; }
+    }
+  }
+
+  function s1SetThumbError() {
+    for (var i = 0; i < 2; i++) {
+      var ovl = document.getElementById('s1Ovl' + i);
+      var tag = document.getElementById('s1Tag' + i);
+      if (ovl) { ovl.className = 'overlay fail'; ovl.innerHTML = '<span style="font-size:10px;">\u2717 识别失败</span><span style="font-size:9px;opacity:.8;margin-top:3px;">图片模糊</span>'; }
+      if (tag) { tag.className = 'corner-tag fail'; tag.textContent = '\u2717'; }
+    }
+  }
+
+  function s1DeleteThumb(e, idx) {
+    if (e) e.stopPropagation();
+    var thumb = document.getElementById('s1Thumb' + idx);
+    if (thumb) {
+      thumb.style.opacity = '0';
+      thumb.style.transform = 'scale(.9)';
+      setTimeout(function() { thumb.remove(); }, 200);
+    }
+  }
+
+  /* 浮层 */
+  function s1ShowFloat() { document.getElementById('s1Float').classList.add('show'); }
+  function s1HideFloat() { document.getElementById('s1Float').classList.remove('show'); }
+
   function s1Upload() {
     s1Run('success');
   }
+
   function s1Run(type) {
     s1Reset();
-    s1SetBar('processing', '正在识别发票，请稍候...');
+    // 阶段 1：上传中
+    s1SetThumbUploading();
+    s1SetBar('processing', '正在上传附件...');
+    s1ShowFloat();
+
     setTimeout(function() {
-      if (type === 'success') {
-        s1SetBar('success', '识别完成，已自动回填');
-        S1_FIELDS.forEach(function(k) {
-          var el = document.getElementById('s1-' + k);
-          if (el && MOCK[k]) { el.value = MOCK[k]; }
-        });
-        setTimeout(s1HideBar, 1500);
-      } else if (type === 'duplicate') {
-        s1SetBar('duplicate', '发票已存在，请勿重复上传');
-      } else {
-        s1SetBar('error', '识别失败：图片模糊，无法识别');
-      }
-    }, 1200);
+      // 阶段 2：识别中
+      s1SetThumbParsing();
+      s1SetBar('processing', '正在识别发票，请稍候...');
+
+      setTimeout(function() {
+        s1HideFloat();
+        if (type === 'success') {
+          s1SetBar('success', '识别完成，已自动回填');
+          s1SetThumbSuccess();
+          S1_FIELDS.forEach(function(k) {
+            var el = document.getElementById('s1-' + k);
+            if (el && MOCK[k]) { el.value = MOCK[k]; el.className = ''; }
+          });
+          setTimeout(s1HideBar, 2000);
+        } else if (type === 'duplicate') {
+          s1SetBar('duplicate', '发票已存在，请勿重复上传');
+          s1SetThumbDuplicate();
+        } else {
+          s1SetBar('error', '识别失败：图片模糊，无法识别');
+          s1SetThumbError();
+        }
+      }, 1500);
+    }, 1000);
   }
 
   /* ===== 场景二 ===== */
