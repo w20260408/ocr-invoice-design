@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OCR</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; min-height: 100%;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: transparent;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .wrap {
+    width: 100%;
+    background: #fffbe6; color: #d48806;
+    border-bottom: 1px solid #ffe58f;
+    padding: 8px 24px;
+    transition: opacity .35s ease, padding .35s ease, height .35s ease;
+    opacity: 1;
+    overflow: hidden;
+  }
+
+  /* 弹窗模式：iframe 被系统弹窗打开时，内容自适应撑满 */
+  body.popup-mode .wrap {
+    flex: 1;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 16px 24px;
+  }
+  body.popup-mode .main {
+    font-size: 14px;
+    min-height: 0;
+  }
+  body.popup-mode .spinner {
+    width: 18px; height: 18px;
+    border-width: 2px;
+  }
+  body.popup-mode .icon { font-size: 18px; }
+  body.popup-mode .file-list { margin-top: 10px; padding-top: 10px; }
+  .wrap.hiding {
+    opacity: 0;
+    padding-top: 0; padding-bottom: 0;
+    height: 0 !important;
+    border-bottom-color: transparent;
+  }
+  .wrap.processing { background: #fffbe6; color: #d48806; border-bottom-color: #ffe58f; }
+  .wrap.success   { background: #f6ffed; color: #389e0d; border-bottom-color: #b7eb8f; }
+  .wrap.duplicate { background: #fff7e6; color: #d46b08; border-bottom-color: #ffd591; }
+  .wrap.error     { background: #fff1f0; color: #cf1322; border-bottom-color: #ffa39e; }
+  .wrap.mixed     { background: #f0f9ff; color: #0958d9; border-bottom-color: #91caff; }
+
+  /* 主标题行 */
+  .main {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 500; min-height: 30px;
+  }
+  .main .text {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1 1 auto;
+  }
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid currentColor;
+    border-top-color: transparent; border-radius: 50%;
+    animation: spin .8s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .dots { display: flex; gap: 4px; }
+  .dots span {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: currentColor; opacity: .4;
+    animation: bounce 1.4s infinite ease-in-out;
+  }
+  .dots span:nth-child(2) { animation-delay: .2s; }
+  .dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: .4; }
+    40% { transform: translateY(-4px); opacity: 1; }
+  }
+
+  .icon { font-size: 15px; flex-shrink: 0; line-height: 1; }
+  .error-detail {
+    font-size: 12px; opacity: .85;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .actions {
+    margin-left: auto; display: flex; gap: 8px; align-items: center;
+  }
+  .btn {
+    font-size: 12px; padding: 2px 10px; border-radius: 3px; cursor: pointer;
+    font-weight: 500; border: none; outline: none; white-space: nowrap;
+  }
+  .btn-retry { background: #cf1322; color: #fff; }
+  .btn-retry:hover { background: #a8071a; }
+  .btn-close { background: transparent; color: #cf1322; border: 1px solid #ffa39e; }
+  .btn-close:hover { background: #fff1f0; }
+  .btn-mixed-close { background: transparent; color: #0958d9; border: 1px solid #91caff; }
+  .btn-mixed-close:hover { background: #f0f9ff; }
+
+  /* 文件列表（混合结果时展开） */
+  .file-list {
+    margin-top: 6px; padding-top: 6px;
+    border-top: 1px solid rgba(0,0,0,.06);
+    display: flex; flex-wrap: wrap; gap: 6px 14px;
+  }
+  .file-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 400;
+    background: rgba(255,255,255,.5); border-radius: 4px; padding: 2px 8px;
+  }
+  .file-item .fname { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-item .stag { font-size: 11px; font-weight: 500; flex-shrink: 0; }
+  .file-item.ok .stag { color: #389e0d; }
+  .file-item.dup .stag { color: #d46b08; }
+  .file-item.err .stag { color: #cf1322; }
+</style>
+</head>
+<body>
+
+<div class="wrap processing" id="wrap">
+  <div class="main" id="main">
+    <span class="spinner" id="spinner"></span>
+    <span class="icon" id="icon" style="display:none"></span>
+    <span class="text" id="text">正在识别发票，请稍候...</span>
+    <span class="dots" id="dots">
+      <span></span><span></span><span></span>
+    </span>
+    <div class="actions" id="actions" style="display:none">
+      <button class="btn btn-close" id="btnClose" onclick="closeSelf()">关闭</button>
+      <button class="btn btn-retry" id="btnRetry" onclick="retry()">重新识别</button>
+    </div>
+  </div>
+  <div class="file-list" id="fileList" style="display:none"></div>
+</div>
+
+<script>
+  var MOCK = {
+    invoiceName: '北京科技股份有限公司', invoiceNo: '12345678', invoiceDate: '2026-07-15',
+    buyer: '示例医院有限公司', seller: '北京科技股份有限公司', item: '医疗设备',
+    qty: '1', spec: 'XYZ-200', unit: '台', price: '5000.00', tax: '650.00',
+    amount: '5650.00', taxRate: '13%', total: '伍仟陆佰伍拾元整', issuer: '张三',
+  };
+
+  window.addEventListener('load', function() {
+    // 自动检测：如果 iframe 高度明显大于横条自然高度，说明被弹窗打开，切换撑满模式
+    if (window.innerHeight > 80) {
+      document.body.classList.add('popup-mode');
+    }
+    startRecognize();
+  });
+
+  function startRecognize() {
+    var wrap = document.getElementById('wrap');
+    wrap.className = 'wrap processing';
+    wrap.classList.remove('hiding');
+    document.body.style.visibility = 'visible';
+    document.getElementById('fileList').style.display = 'none';
+
+    // ===== 从父页面获取附件数量（真实场景由 postMessage 传入），演示默认 3 张 =====
+    var fileCount = 3;
+    document.getElementById('text').textContent =
+      fileCount > 1 ? ('正在识别 ' + fileCount + ' 张发票，请稍候...') : '正在识别发票，请稍候...';
+    setUI({ spinner: true, icon: false, dots: true, actions: false });
+    notifyResize();
+
+    // ===== 替换为真实 fetch 调 OCR 接口 =====
+    // 接口返回: { results: [{ filename, status:'success'|'duplicate'|'error', data?: {...}, error?: {title,detail} }] }
+    setTimeout(function() {
+      var scenario = getScenario();
+      var results;
+      if (scenario === 'all-success') {
+        results = [
+          { filename: '发票_001.jpg', status: 'success', data: MOCK },
+          { filename: '发票_002.jpg', status: 'success', data: MOCK },
+          { filename: '发票_003.jpg', status: 'success', data: MOCK },
+        ];
+      } else if (scenario === 'all-duplicate') {
+        results = [
+          { filename: '发票_001.jpg', status: 'duplicate' },
+          { filename: '发票_002.jpg', status: 'duplicate' },
+          { filename: '发票_003.jpg', status: 'duplicate' },
+        ];
+      } else if (scenario === 'all-error') {
+        results = [
+          { filename: '发票_001.jpg', status: 'error', error: { title: '识别失败', detail: 'OCR 服务暂不可用' } },
+          { filename: '发票_002.jpg', status: 'error', error: { title: '识别失败', detail: '图片模糊，无法识别' } },
+          { filename: '发票_003.jpg', status: 'error', error: { title: '识别失败', detail: 'OCR 服务暂不可用' } },
+        ];
+      } else {
+        // 默认 mixed
+        results = [
+          { filename: '发票_001.jpg', status: 'success', data: MOCK },
+          { filename: '发票_002.jpg', status: 'duplicate' },
+          { filename: '发票_003.png', status: 'error', error: { title: '识别失败', detail: '图片模糊，无法识别' } },
+        ];
+      }
+      handleResults(results);
+    }, 2500);
+  }
+
+  function handleResults(results) {
+    var counts = { success: 0, duplicate: 0, error: 0 };
+    results.forEach(function(r) { counts[r.status] = (counts[r.status] || 0) + 1; });
+
+    // 全部同一状态 → 用单态展示
+    var total = results.length;
+    if (counts.success === total) {
+      showSuccess(results);
+    } else if (counts.duplicate === total) {
+      showDuplicate(total);
+    } else if (counts.error === total) {
+      showError(results[0].error);
+    } else {
+      showMixed(results, counts);
+    }
+  }
+
+  // ---- 全部成功 ----
+  function showSuccess(results) {
+    var wrap = document.getElementById('wrap');
+    wrap.className = 'wrap success';
+    var total = results.length;
+    document.getElementById('text').textContent =
+      total > 1 ? (total + ' 张识别完成，已自动回填') : '识别完成，已自动回填发票字段';
+    document.getElementById('icon').textContent = '\u2713';
+    setUI({ spinner: false, icon: true, dots: false, actions: false });
+
+    // 回填（只传成功的）
+    window.parent.postMessage({
+      type: 'ocr-result',
+      results: results.filter(function(r) { return r.status === 'success'; })
+    }, '*');
+
+    autoHide(1500);
+  }
+
+  // ---- 全部重复 ----
+  function showDuplicate(total) {
+    var wrap = document.getElementById('wrap');
+    wrap.className = 'wrap duplicate';
+    document.getElementById('icon').textContent = '\u26A0';
+    document.getElementById('text').textContent =
+      total > 1 ? (total + ' 张发票均已存在，请勿重复上传') : '发票已存在，请勿重复上传';
+    setUI({ spinner: false, icon: true, dots: false, actions: false });
+
+    autoHide(2500);
+  }
+
+  // ---- 全部失败 ----
+  function showError(err) {
+    var wrap = document.getElementById('wrap');
+    wrap.className = 'wrap error';
+    document.getElementById('icon').textContent = '\u2717';
+    document.getElementById('text').innerHTML =
+      '<b>' + err.title + '</b> <span class="error-detail">' + err.detail + '</span>';
+    setUI({ spinner: false, icon: true, dots: false, actions: true });
+  }
+
+  // ---- 混合结果（新增） ----
+  function showMixed(results, counts) {
+    var wrap = document.getElementById('wrap');
+    wrap.className = 'wrap mixed';
+
+    // 汇总文案
+    var parts = [];
+    if (counts.success)   parts.push(counts.success + ' 张\u2713');
+    if (counts.duplicate) parts.push(counts.duplicate + ' 张\u26A0');
+    if (counts.error)     parts.push(counts.error + ' 张\u2717');
+    document.getElementById('text').textContent = '识别完成：' + parts.join('，');
+    document.getElementById('icon').style.display = 'none';
+
+    setUI({ spinner: false, icon: false, dots: false, actions: true });
+    var btnClose = document.getElementById('btnClose');
+    var btnRetry = document.getElementById('btnRetry');
+    btnClose.className = 'btn btn-mixed-close';
+    btnRetry.style.display = 'none';
+
+    // 逐文件列表
+    var fl = document.getElementById('fileList');
+    fl.style.display = 'flex';
+    fl.innerHTML = '';
+    results.forEach(function(r) {
+      var cls, stag;
+      if (r.status === 'success')   { cls = 'ok'; stag = '\u2713 已回填'; }
+      else if (r.status === 'duplicate') { cls = 'dup'; stag = '\u26A0 重复'; }
+      else                          { cls = 'err'; stag = '\u2717 ' + (r.error ? r.error.detail : '失败'); }
+
+      var div = document.createElement('div');
+      div.className = 'file-item ' + cls;
+      div.innerHTML = '<span class="fname">' + r.filename + '</span><span class="stag">' + stag + '</span>';
+      fl.appendChild(div);
+    });
+
+    // 回填成功的
+    window.parent.postMessage({
+      type: 'ocr-result',
+      results: results.filter(function(r) { return r.status === 'success'; })
+    }, '*');
+
+    // 通知父页面展开 iframe 高度
+    setTimeout(function() { notifyResize(); }, 10);
+
+    // 混合结果也自动收起，给用户 5 秒查看
+    autoHide(5000);
+  }
+
+  function notifyResize() {
+    var wrap = document.getElementById('wrap');
+    if (wrap.classList.contains('hiding')) return;
+    var h = document.body.scrollHeight;
+    window.parent.postMessage({ type: 'ocr-resize', height: h }, '*');
+  }
+
+  // 自动隐藏：iframe 内部自己收起，不依赖父页面处理 ocr-done
+  function autoHide(ms) {
+    setTimeout(function() {
+      var wrap = document.getElementById('wrap');
+      wrap.classList.add('hiding');
+      // 同时通知父页面（如果父页面监听了就彻底移除；没监听，iframe 内容也自己收起来了）
+      window.parent.postMessage({ type: 'ocr-done' }, '*');
+      // 再过一段时间彻底不可见
+      setTimeout(function() {
+        document.body.style.visibility = 'hidden';
+      }, 350);
+    }, ms);
+  }
+
+  function retry() {
+    document.getElementById('wrap').classList.remove('hiding');
+    document.body.style.visibility = 'visible';
+    startRecognize();
+  }
+
+  // 每次加载自动轮换场景：第1次全部成功 → 第2次部分重复 → 第3次全部失败 → 第4次全部重复 → 循环
+  var SCENARIOS = ['all-success', 'mixed', 'all-error', 'all-duplicate'];
+  function getScenario() {
+    try {
+      var idx = parseInt(localStorage.getItem('_ocr_scenario_idx') || '0', 10);
+      var s = SCENARIOS[idx % SCENARIOS.length];
+      localStorage.setItem('_ocr_scenario_idx', (idx + 1) % SCENARIOS.length);
+      return s;
+    } catch(e) { return 'mixed'; }
+  }
+
+  function closeSelf() {
+    var wrap = document.getElementById('wrap');
+    wrap.classList.add('hiding');
+    window.parent.postMessage({ type: 'ocr-done' }, '*');
+    setTimeout(function() { document.body.style.visibility = 'hidden'; }, 350);
+  }
+
+  function setUI(opts) {
+    document.getElementById('spinner').style.display = opts.spinner ? 'inline-block' : 'none';
+    document.getElementById('icon').style.display = opts.icon ? 'inline-block' : 'none';
+    document.getElementById('dots').style.display = opts.dots ? 'flex' : 'none';
+    document.getElementById('actions').style.display = opts.actions ? 'flex' : 'none';
+    var btnClose = document.getElementById('btnClose');
+    var btnRetry = document.getElementById('btnRetry');
+    btnClose.className = 'btn btn-close';
+    btnClose.style.display = '';
+    btnRetry.className = 'btn btn-retry';
+    btnRetry.style.display = '';
+  }
+</script>
+</body>
+</html>

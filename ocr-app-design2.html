@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App 端 OCR 智能识别回填 · 三场景设计</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f6f8; padding: 24px; color: #333;
+  }
+
+  .header { max-width: 1260px; margin: 0 auto 24px; }
+  .header h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .header .desc { font-size: 12px; color: #909399; line-height: 1.7; }
+  .legend { display: flex; gap: 18px; margin-top: 10px; font-size: 11px; color: #606266; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 8px; height: 8px; border-radius: 2px; }
+  .dot.native { background: #909399; }
+  .dot.data { background: #409eff; }
+  .dot.iframe { background: #e6a23c; }
+  .dot.parent { background: #f56c6c; }
+
+  /* ===== 三列并排 ===== */
+  .phones-row {
+    display: flex; justify-content: center; gap: 28px; max-width: 1260px; margin: 0 auto 24px;
+    flex-wrap: wrap;
+  }
+  .phone-col { display: flex; flex-direction: column; align-items: center; }
+  .scene-tag {
+    text-align: center; margin-bottom: 10px; font-size: 13px; font-weight: 600; color: #333; line-height: 1.6;
+  }
+  .scene-tag .num {
+    display: inline-block; width: 20px; height: 20px; line-height: 20px;
+    border-radius: 50%; background: #409eff; color: #fff; margin-right: 6px; font-size: 12px;
+  }
+  .scene-tag .sub { font-size: 11px; color: #909399; font-weight: 400; display: block; }
+
+  /* ===== 手机壳 ===== */
+  .phone {
+    width: 375px; height: 740px; background: #fff;
+    border-radius: 32px; overflow: hidden; position: relative;
+    box-shadow: 0 8px 32px rgba(0,0,0,.12); border: 8px solid #1a1a1a;
+  }
+  .phone .status-bar {
+    height: 28px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; font-weight: 600; background: #fff; color: #000;
+  }
+  .phone .nav {
+    height: 44px; padding: 0 16px; display: flex; align-items: center; justify-content: center;
+    background: #fff; border-bottom: 1px solid #f0f0f0; position: relative;
+    font-size: 16px; font-weight: 600;
+  }
+  .phone .nav .back { position: absolute; left: 12px; font-size: 20px; color: #333; cursor: pointer; }
+  .phone .content {
+    height: calc(100% - 28px - 44px); overflow-y: auto; background: #f5f6f8; position: relative;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ===== 通用组件 ===== */
+  .form-card { background: #fff; margin: 10px 12px; border-radius: 8px; padding: 14px; }
+  .form-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #303133; }
+  .form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .form-label { font-size: 12px; color: #909399; width: 60px; flex-shrink: 0; }
+  .form-input {
+    flex: 1; padding: 7px 10px; border: 1px solid #e4e7ed; border-radius: 6px;
+    font-size: 13px; background: #fafbfc; color: #b0b6c1;
+  }
+  .form-input.filled { color: #303133; background: #fff; }
+
+  .annotation {
+    margin: 6px 12px; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 500;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .annotation.native { background: rgba(144,147,153,.08); color: #909399; }
+  .annotation.data { background: rgba(64,158,255,.08); color: #409eff; }
+  .annotation.iframe { background: rgba(230,162,60,.08); color: #e6a23c; }
+  .annotation.parent { background: rgba(245,108,108,.08); color: #f56c6c; }
+
+  /* ===== Toast ===== */
+  .toast {
+    margin: 8px 12px; padding: 10px 12px; background: #f56c6c; color: #fff;
+    border-radius: 8px; font-size: 12px; display: none; align-items: center; gap: 8px;
+    box-shadow: 0 2px 12px rgba(245,108,108,.25); position: relative; z-index: 5;
+    animation: toastIn .3s ease;
+  }
+  @keyframes toastIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+  .toast.show { display: flex; }
+
+  /* ===== 附件缩略图 ===== */
+  .att-section { padding: 0 12px 12px; }
+  .att-label { font-size: 13px; color: #666; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+  .att-label .badge { font-size: 11px; padding: 3px 10px; border-radius: 10px; font-weight: 500; }
+  .badge.info { background: #f0f7ff; color: #409eff; }
+  .badge.ok { background: #f0f9eb; color: #67c23a; }
+  .badge.warn { background: #fdf6ec; color: #e6a23c; }
+  .badge.err { background: #fef0f0; color: #f56c6c; }
+
+  /* 附件入口行（贴合 APP 工单截图） */
+  .att-entry-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border-radius: 8px; padding: 12px 14px;
+    margin-bottom: 10px; cursor: pointer;
+  }
+  .att-entry-row .ae-title { font-size: 14px; color: #303133; font-weight: 400; }
+  .att-entry-row .ae-right { display: flex; align-items: center; gap: 12px; }
+  .att-entry-row .ae-add {
+    width: 24px; height: 24px; border-radius: 50%; background: #409eff; color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 300;
+  }
+  .att-entry-row .ae-arrow { color: #c0c4cc; font-size: 18px; }
+
+  .att-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .att-item {
+    position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: #e4e7ed;
+    cursor: pointer; transition: transform .15s;
+  }
+  .att-item:active { transform: scale(.96); }
+  .att-item .bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #a8c0d6 0%, #6b8cae 100%);
+  }
+  .att-item .bg.b2 { background: linear-gradient(135deg, #f5b88c 0%, #c9824f 100%); }
+  .att-item .bg.b3 { background: linear-gradient(135deg, #b8c4d6 0%, #7585a0 100%); }
+
+  .att-item .overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-size: 11px; color: #fff; text-align: center; padding: 6px;
+  }
+  .att-item .overlay.dark { background: rgba(0,0,0,.55); }
+  .att-item .overlay.fail { background: rgba(245,108,108,.85); }
+  .att-item .overlay.dup  { background: rgba(230,162,60,.85); }
+
+  .spinner {
+    width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 4px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .corner-tag {
+    position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
+    border-radius: 50%; display: none; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff; z-index: 2;
+  }
+  .corner-tag.ok { background: #67c23a; display: flex; }
+  .corner-tag.fail { background: #f56c6c; display: flex; }
+
+  /* ===== 极小浮层（场景一） ===== */
+  .mini-float {
+    position: absolute; bottom: 70px; right: 12px; z-index: 20;
+    background: rgba(30,30,30,.94); color: #fff;
+    border-radius: 20px; padding: 8px 14px;
+    display: none; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+    pointer-events: none;
+    animation: popIn .3s ease;
+  }
+  .mini-float.show { display: flex; }
+  @keyframes popIn { from { transform: scale(.85) translateY(6px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+  .mini-float .mf-spinner {
+    width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.25);
+    border-top-color: #409eff; border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0;
+  }
+
+  /* ===== 资产子表 ===== */
+  .sub-table { margin: 0 12px 12px; }
+  .sub-table .st-head {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+  }
+  .sub-table .st-title { font-size: 13px; font-weight: 600; color: #303133; }
+  .sub-table .st-add {
+    padding: 5px 14px; border: none; border-radius: 16px; background: #409eff; color: #fff;
+    font-size: 12px; cursor: pointer; font-weight: 500;
+  }
+  .sub-table table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .sub-table th, .sub-table td { padding: 7px 6px; border: 1px solid #ebeef5; text-align: left; color: #606266; }
+  .sub-table th { background: #f5f7fa; font-weight: 500; text-align: center; }
+  .sub-table td { text-align: center; }
+  .sub-table .empty { color: #c0c4cc; padding: 18px; }
+  .new-row { animation: rowIn .4s ease; }
+  @keyframes rowIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+  .sub-table .op { color: #409eff; font-size: 10px; cursor: pointer; }
+
+  /* ===== 资产卡片（场景三） ===== */
+  .asset-card-section { margin: 0 12px 12px; }
+  .asset-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .asset-card-title { font-size: 13px; font-weight: 600; color: #303133; }
+  .asset-card-title span { font-weight: 400; color: #909399; }
+  .asset-card-toggle {
+    color: #909399; font-size: 14px; cursor: pointer;
+    width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  }
+  .asset-card-links {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; font-size: 12px;
+  }
+  .asset-card-links .ac-link {
+    display: flex; align-items: center; gap: 5px; cursor: pointer;
+  }
+  .asset-card-links .ac-link.add { color: #409eff; }
+  .asset-card-links .ac-link.view { color: #606266; }
+  .asset-card-links .ac-link .icon { font-size: 14px; }
+  .asset-card {
+    background: #fff; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    margin-bottom: 10px; position: relative;
+    animation: cardIn .35s ease;
+  }
+  @keyframes cardIn { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
+  .asset-card .ac-body { padding: 12px 14px; }
+  .asset-card .ac-row {
+    display: flex; align-items: center; padding: 4px 0; font-size: 12px; color: #606266;
+  }
+  .asset-card .ac-row .ac-label { width: 72px; flex-shrink: 0; color: #909399; font-size: 11px; }
+  .asset-card .ac-row .ac-val { flex: 1; color: #303133; }
+  .asset-card .ac-del {
+    position: absolute; top: 50%; right: 10px; transform: translateY(-50%);
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #e4e7ed; color: #fff; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none;
+  }
+  .asset-card .ac-expand {
+    display: flex; align-items: center; justify-content: center;
+    padding: 8px; border-top: 1px solid #f5f5f5; color: #c0c4cc;
+    font-size: 11px; cursor: pointer; background: #fafbfc;
+  }
+  .asset-card .ac-empty {
+    padding: 24px; text-align: center; color: #c0c4cc; font-size: 12px;
+    background: #fff; border-radius: 8px;
+  }
+
+  /* ===== 场景二 Sheet ===== */
+  .sheet-mask {
+    position: absolute; inset: 0; background: rgba(0,0,0,.4); z-index: 10;
+    display: none; flex-direction: column; justify-content: flex-end;
+  }
+  .sheet-mask.show { display: flex; }
+  .sheet {
+    background: #fff; border-radius: 16px 16px 0 0;
+    padding: 16px 0 24px; animation: slideUp .35s ease;
+    max-height: 70%; overflow: auto;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .drag-handle { width: 36px; height: 4px; background: #e4e7ed; border-radius: 2px; margin: 0 auto 14px; }
+  .sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px 14px; border-bottom: 1px solid #f5f5f5;
+  }
+  .sheet-title { font-size: 16px; font-weight: 600; }
+  .sheet-close {
+    width: 28px; height: 28px; border-radius: 50%; background: #f5f5f5; border: none;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; color: #999; cursor: pointer;
+  }
+  .step-list { padding: 6px 20px; }
+  .step-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0; font-size: 14px; color: #333;
+  }
+  .step-item + .step-item { border-top: 1px solid #fafafa; }
+  .step-item .name { font-weight: 500; }
+  .step-item .right-side { display: flex; align-items: center; gap: 8px; }
+  .step-item .st-text { font-size: 12px; color: #999; }
+  .step-item .st-text.ok { color: #67c23a; }
+  .step-spinner {
+    width: 16px; height: 16px; border: 2px solid #f0f0f0;
+    border-top-color: #e6a23c; border-radius: 50%; animation: spin .8s linear infinite;
+  }
+  .step-check {
+    width: 18px; height: 18px; border-radius: 50%; background: #67c23a;
+    color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ===== 场景三弹窗 ===== */
+  .s3-mask {
+    position: absolute; inset: 0; background: rgba(0,0,0,.5); z-index: 20;
+    display: none; align-items: flex-end; justify-content: center;
+  }
+  .s3-mask.show { display: flex; }
+  .s3-panel {
+    width: 100%; height: 88%; background: #fff; border-radius: 16px 16px 0 0;
+    display: flex; flex-direction: column; animation: slideUp .35s ease;
+    overflow: hidden;
+  }
+  .s3-panel .pn-head {
+    padding: 14px 18px; border-bottom: 1px solid #f0f0f0;
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .s3-panel .pn-title { font-size: 16px; font-weight: 600; }
+  .s3-panel .pn-close {
+    width: 28px; height: 28px; border-radius: 50%; background: #f5f5f5; border: none;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; color: #999; cursor: pointer;
+  }
+  .s3-panel .pn-body { flex: 1; overflow: auto; padding: 12px 16px; }
+  .s3-panel .pn-foot {
+    padding: 12px 18px; border-top: 1px solid #f0f0f0; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .s3-panel .pn-summary { font-size: 13px; color: #606266; visibility: hidden; }
+  .s3-panel .pn-summary b { color: #67c23a; }
+  .s3-panel .pn-actions { display: flex; gap: 10px; }
+  .s3-panel .pn-actions button {
+    padding: 8px 20px; border-radius: 20px; font-size: 14px; cursor: pointer; border: none; font-weight: 500;
+  }
+  .s3-panel .pn-cancel { background: #f5f5f5; color: #666; }
+  .s3-panel .pn-confirm { background: #409eff; color: #fff; opacity: .4; pointer-events: none; }
+  .s3-panel .pn-confirm.active { opacity: 1; pointer-events: auto; }
+
+  /* 上传区 */
+  .s3-upload {
+    border: 1.5px dashed #d0d5dd; border-radius: 10px; padding: 22px; text-align: center;
+    background: #fafbfc; margin-bottom: 14px; cursor: pointer; transition: all .2s;
+  }
+  .s3-upload:active { background: #f0f7ff; border-color: #409eff; }
+  .s3-upload .uz-icon { font-size: 28px; color: #909399; margin-bottom: 6px; }
+  .s3-upload .uz-text { font-size: 13px; color: #606266; }
+  .s3-upload .uz-hint { font-size: 11px; color: #c0c4cc; margin-top: 2px; }
+  .s3-upload.uploading { border-style: solid; background: #fffbe6; border-color: #e6a23c; pointer-events: none; }
+  .s3-upload.uploading .uz-icon { color: #e6a23c; }
+
+  /* 摘要条 */
+  .s3-summary {
+    display: flex; gap: 12px; padding: 8px 12px; background: #f5f7fa; border-radius: 8px;
+    margin-bottom: 12px; font-size: 11px; color: #606266; flex-wrap: wrap;
+    display: none;
+  }
+  .s3-summary .stat { display: flex; align-items: center; gap: 3px; }
+  .s3-summary .stat b { font-size: 13px; }
+  .s3-summary .stat.ok b { color: #67c23a; }
+  .s3-summary .stat.dup b { color: #e6a23c; }
+  .s3-summary .stat.err b { color: #f56c6c; }
+  .s3-summary .stat.proc b { color: #909399; }
+
+  /* 结果列表 */
+  .s3-list-head {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    font-size: 13px; font-weight: 600;
+    display: none;
+  }
+  .s3-list-actions { display: flex; gap: 6px; }
+  .s3-list-actions button {
+    padding: 3px 10px; border-radius: 12px; font-size: 11px; cursor: pointer;
+    border: 1px solid #dcdfe6; background: #fff; color: #606266;
+  }
+  .s3-list-actions button.danger { color: #f56c6c; border-color: #fde2e2; }
+
+  .s3-result-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .s3-result-table th, .s3-result-table td { padding: 8px 6px; border-bottom: 1px solid #f0f0f0; text-align: left; color: #606266; }
+  .s3-result-table th { background: #f5f7fa; font-weight: 500; color: #909399; font-size: 10px; }
+  .s3-result-table .col-chk { width: 28px; text-align: center; }
+  .s3-result-table .col-name { width: 80px; }
+  .s3-result-table .col-val { min-width: 60px; }
+  .s3-result-table .col-status { width: 60px; text-align: center; }
+  .s3-result-table .col-op { width: 50px; text-align: center; }
+  .s3-result-table .rchk { accent-color: #409eff; }
+  .s3-result-table .rchk:disabled { opacity: .35; }
+  .s3-result-table .fname { font-weight: 500; color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; display: block; }
+  .s3-result-table .fval { font-size: 10px; font-family: "SF Mono","Menlo",monospace; }
+
+  .s3-badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: 500; }
+  .s3-badge.ok { background: #f0f9eb; color: #67c23a; }
+  .s3-badge.dup { background: #fdf6ec; color: #e6a23c; }
+  .s3-badge.err { background: #fef0f0; color: #f56c6c; }
+  .s3-badge.proc { background: #f5f7fa; color: #909399; }
+  .s3-badge.proc .spin {
+    display: inline-block; width: 8px; height: 8px; border: 1.5px solid currentColor; border-top-color: transparent;
+    border-radius: 50%; animation: spin .8s linear infinite; margin-right: 3px; vertical-align: middle;
+  }
+  .s3-retry { padding: 2px 8px; border: none; border-radius: 3px; background: #fef0f0; color: #f56c6c; font-size: 10px; cursor: pointer; }
+  .s3-remove { margin-left: 3px; padding: 1px 6px; border: none; border-radius: 3px; background: #f5f5f5; color: #999; font-size: 10px; cursor: pointer; }
+  .s3-empty { text-align: center; padding: 30px; color: #c0c4cc; font-size: 13px; }
+
+  /* 底部控制 */
+  .btn-row { text-align: center; margin-top: 10px; }
+  .btn-row button {
+    padding: 7px 16px; border-radius: 16px; font-size: 12px; cursor: pointer; border: 1px solid #409eff;
+    background: #fff; color: #409eff; margin: 0 3px 6px; transition: all .15s;
+  }
+  .btn-row button:hover { background: #409eff; color: #fff; }
+  .btn-row button.warn { border-color: #e6a23c; color: #e6a23c; }
+  .btn-row button.warn:hover { background: #e6a23c; color: #fff; }
+  .btn-row button.success { border-color: #67c23a; color: #67c23a; }
+  .btn-row button.success:hover { background: #67c23a; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>App 端 OCR 智能识别回填 · 三场景设计</h1>
+  <div class="desc">
+    三个场景覆盖手机端工单附件上传、OCR 识别、结果回填的完整交互链路。每个手机内标注了元素归属。
+  </div>
+  <div class="legend">
+    <div class="legend-item"><span class="dot native"></span>原生页面元素</div>
+    <div class="legend-item"><span class="dot data"></span>插件修改字段/附件数据</div>
+    <div class="legend-item"><span class="dot iframe"></span>插件 iframe UI（浮层/Sheet/弹窗）</div>
+    <div class="legend-item"><span class="dot parent"></span>父页面 DOM（toast/提示 由 postMessage 触发）</div>
+  </div>
+</div>
+
+<div class="phones-row">
+
+  <!-- ==================== 场景一 ==================== -->
+  <div class="phone-col">
+    <div class="scene-tag">
+      <span class="num">1</span>附件缩略图状态 + 极小浮层
+      <span class="sub">工单附件 → OCR 识别 → 回填工单字段</span>
+    </div>
+    <div class="phone">
+      <div class="status-bar"><span>11:00</span><span style="display:flex;gap:4px;">5G ▮▮▮▮ ⚡</span></div>
+      <div class="nav"><span class="back">‹</span><span>新建工单</span></div>
+      <div class="content" id="s1Content">
+
+        <!-- Toast: 父页面 DOM -->
+        <div class="toast" id="s1Toast">
+          <span style="font-size:16px;">⚠️</span>
+          <span>发票识别失败，请检查图片清晰度后重新上传</span>
+        </div>
+
+        <!-- 表单：原生页面 -->
+        <div class="annotation native">📄 原生页面 · 工单表单</div>
+        <div class="form-card">
+          <div class="form-title">工单信息</div>
+          <div class="form-row"><div class="form-label">发票号</div><input class="form-input" id="s1No" placeholder="识别后自动填入"></div>
+          <div class="form-row"><div class="form-label">金额</div><input class="form-input" id="s1Amt" placeholder="识别后自动填入"></div>
+          <div class="form-row"><div class="form-label">开票方</div><input class="form-input" id="s1Seller" placeholder="识别后自动填入"></div>
+          <div class="form-row"><div class="form-label">日期</div><input class="form-input" id="s1Date" placeholder="识别后自动填入"></div>
+        </div>
+
+        <!-- 附件区: 插件修改附件字段数据 -->
+        <div class="annotation data">📎 插件修改附件字段数据 → 控制缩略图状态</div>
+        <div class="att-section">
+          <div class="att-entry-row">
+            <span class="ae-title">附件</span>
+            <div class="ae-right">
+              <span class="ae-add">+</span>
+              <span class="ae-arrow">›</span>
+            </div>
+          </div>
+          <div class="att-grid">
+            <div class="att-item" id="s1T1" onclick="s1ClickThumb(0)">
+              <div class="bg"></div>
+              <div class="overlay dark" id="s1Ovl1"><div class="spinner"></div><span>识别中</span></div>
+            </div>
+            <div class="att-item" id="s1T2" onclick="s1ClickThumb(1)">
+              <div class="bg b2"></div>
+              <div class="overlay dark" id="s1Ovl2"><div class="spinner"></div><span>识别中</span></div>
+              <div class="corner-tag" id="s1Tag2">✓</div>
+            </div>
+            <div class="att-item" id="s1T3" onclick="s1ClickThumb(2)">
+              <div class="bg b3"></div>
+              <div class="overlay dark" id="s1Ovl3"><div class="spinner"></div><span>识别中</span></div>
+              <div class="corner-tag" id="s1Tag3">✓</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 总结条: 父页面 DOM -->
+        <div class="annotation parent" id="s1Summary" style="display:none;">
+          📢 父页面 DOM：插件 postMessage → 更新 toast
+        </div>
+
+        <!-- 插件 iframe 极简浮层 -->
+        <div class="mini-float show" id="s1Float">
+          <div class="mf-spinner"></div><span>AI 识别中...</span>
+        </div>
+        <div class="annotation iframe">🤖 插件 iframe 弹出的极简浮层（右下角，不挡操作）</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button onclick="s1Cycle()">切换状态</button>
+    </div>
+  </div>
+
+  <!-- ==================== 场景二 ==================== -->
+  <div class="phone-col">
+    <div class="scene-tag">
+      <span class="num">2</span>底部 Sheet 处理流程
+      <span class="sub">工单附件 → OCR 识别 → 回填工单资产表</span>
+    </div>
+    <div class="phone">
+      <div class="status-bar"><span>11:00</span><span style="display:flex;gap:4px;">5G ▮▮▮▮ ⚡</span></div>
+      <div class="nav"><span class="back">‹</span><span>新建工单</span></div>
+      <div class="content" id="s2Content">
+
+        <div class="annotation native">📄 原生页面 · 工单表单 + 资产子表</div>
+        <div class="form-card">
+          <div class="form-title">工单信息</div>
+          <div class="form-row"><div class="form-label">标题</div><input class="form-input filled" value="设备采购发票报销"></div>
+          <div class="form-row"><div class="form-label">申请人</div><input class="form-input filled" value="张三"></div>
+          <div class="form-row"><div class="form-label">部门</div><input class="form-input filled" value="信息科"></div>
+        </div>
+
+        <div class="annotation data">📎 点击附件入口触发上传识别，结果写入下方资产表</div>
+        <div class="att-section">
+          <div class="att-entry-row" onclick="s2Trigger()">
+            <span class="ae-title">附件</span>
+            <div class="ae-right">
+              <span class="ae-add">+</span>
+              <span class="ae-arrow">›</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 资产子表（卡片样式） -->
+        <div class="asset-card-section">
+          <div class="asset-card-header">
+            <div class="asset-card-title">发票附件 <span id="s2CardCount">(0)</span></div>
+            <div class="asset-card-toggle" id="s2Toggle" onclick="s2ToggleCards()">▲</div>
+          </div>
+          <div class="asset-card-links">
+            <div class="ac-link add" onclick="s2Trigger()">
+              <span class="icon">⊕</span><span>添加</span>
+            </div>
+            <div class="ac-link view" onclick="s2ViewAll()">
+              <span class="icon">👁</span><span>查看全部</span>
+            </div>
+          </div>
+          <div id="s2CardWrap">
+            <div class="asset-card">
+              <div class="ac-empty" id="s2CardEmpty">暂无发票数据，点击"添加"上传</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="annotation parent" id="s2ParentNote" style="display:none;">
+          ✨ 父页面 DOM：Sheet 关闭后资产表新增行
+        </div>
+
+        <!-- Bottom Sheet（插件 iframe） -->
+        <div class="sheet-mask" id="s2Sheet">
+          <div class="sheet">
+            <div class="drag-handle"></div>
+            <div class="sheet-head">
+              <div class="sheet-title">系统处理中</div>
+              <button class="sheet-close" onclick="s2CloseSheet()">×</button>
+            </div>
+            <div class="step-list" id="s2Steps">
+              <div class="step-item">
+                <span class="name">发票压缩上传</span>
+                <div class="right-side"><span class="st-text">处理中</span><div class="step-spinner"></div></div>
+              </div>
+              <div class="step-item">
+                <span class="name">发票识别验真</span>
+                <div class="right-side"><span class="st-text">等待中</span><div class="step-spinner" style="opacity:.3"></div></div>
+              </div>
+              <div class="step-item">
+                <span class="name">合规性校验</span>
+                <div class="right-side"><span class="st-text">等待中</span><div class="step-spinner" style="opacity:.3"></div></div>
+              </div>
+            </div>
+            <div class="annotation iframe" style="margin:8px 20px 0;">🤖 整个 Sheet 在插件 iframe 内，步骤状态由插件控制</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button onclick="s2Trigger()">触发上传识别</button>
+      <button class="warn" onclick="s2Reset()">重置</button>
+    </div>
+  </div>
+
+  <!-- ==================== 场景三 ==================== -->
+  <div class="phone-col">
+    <div class="scene-tag">
+      <span class="num">3</span>全屏弹窗上传/解析/选择
+      <span class="sub">资产表内添加 → iframe 弹窗 → 解析勾选 → 回填</span>
+    </div>
+    <div class="phone">
+      <div class="status-bar"><span>11:01</span><span style="display:flex;gap:4px;">5G ▮▮▮▮ ⚡</span></div>
+      <div class="nav"><span class="back">‹</span><span>新建工单</span></div>
+      <div class="content" id="s3Content">
+
+        <div class="annotation native">📄 原生页面 · 工单表单 + 资产子表</div>
+        <div class="form-card">
+          <div class="form-title">工单信息</div>
+          <div class="form-row"><div class="form-label">标题</div><input class="form-input filled" value="设备采购发票报销"></div>
+          <div class="form-row"><div class="form-label">申请人</div><input class="form-input filled" value="张三"></div>
+        </div>
+
+        <div class="annotation data">📎 资产表内"添加数据"按钮触发插件弹窗</div>
+        <div class="asset-card-section">
+          <div class="asset-card-header">
+            <div class="asset-card-title">发票附件 <span id="s3CardCount">(0)</span></div>
+            <div class="asset-card-toggle" id="s3Toggle" onclick="s3ToggleCards()">▲</div>
+          </div>
+          <div class="asset-card-links">
+            <div class="ac-link add" onclick="s3OpenPanel()">
+              <span class="icon">⊕</span><span>添加</span>
+            </div>
+            <div class="ac-link view" onclick="s3ViewAll()">
+              <span class="icon">👁</span><span>查看全部</span>
+            </div>
+          </div>
+          <div id="s3CardWrap">
+            <div class="asset-card">
+              <div class="ac-empty" id="s3CardEmpty">暂无发票数据，点击"添加"上传</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="annotation parent" id="s3ParentNote" style="display:none;">
+          ✨ 父页面 DOM：弹窗确认后资产表新增行
+        </div>
+
+        <!-- 全屏弹窗（插件 iframe） -->
+        <div class="s3-mask" id="s3Panel">
+          <div class="s3-panel">
+            <div class="pn-head">
+              <div class="pn-title">添加数据</div>
+              <button class="pn-close" onclick="s3ClosePanel()">×</button>
+            </div>
+            <div class="pn-body">
+              <div class="annotation iframe" style="margin:0 0 12px;">🤖 插件 iframe 内：上传附件 → 解析 → 勾选 → 确定</div>
+
+              <!-- 上传区 -->
+              <div class="s3-upload" id="s3UploadZone" onclick="s3SimUpload()">
+                <div class="uz-icon" id="s3UzIcon">📎</div>
+                <div class="uz-text">点击或拖拽上传附件</div>
+                <div class="uz-hint">支持 jpg、png、pdf</div>
+              </div>
+
+              <!-- 摘要条 -->
+              <div class="s3-summary" id="s3Summary">
+                <div class="stat proc" id="s3StatProc"><b>0</b> 解析中</div>
+                <div class="stat ok" id="s3StatOk"><b>0</b> 成功</div>
+                <div class="stat dup" id="s3StatDup"><b>0</b> 重复</div>
+                <div class="stat err" id="s3StatErr"><b>0</b> 失败</div>
+              </div>
+
+              <!-- 列表头 -->
+              <div class="s3-list-head" id="s3ListHd">
+                <span>📋 识别结果 <span id="s3Count" style="font-weight:400;color:#909399;">(0)</span></span>
+                <div class="s3-list-actions">
+                  <button onclick="s3SelectAllOk()">全选成功</button>
+                  <button onclick="s3ClearAll()" class="danger">清空</button>
+                </div>
+              </div>
+
+              <!-- 结果表 -->
+              <div id="s3ResultWrap">
+                <div class="s3-empty" id="s3Empty">上传附件后将在此显示解析结果</div>
+                <table class="s3-result-table" id="s3RTable" style="display:none;">
+                  <thead>
+                    <tr>
+                      <th class="col-chk"><input type="checkbox" id="s3CheckAll" onchange="s3ToggleAll()"></th>
+                      <th class="col-name">文件名</th>
+                      <th class="col-val">字段A</th>
+                      <th class="col-val">字段B</th>
+                      <th class="col-val">字段C</th>
+                      <th class="col-status">状态</th>
+                      <th class="col-op">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="s3RTbody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="pn-foot">
+              <div class="pn-summary" id="s3FootSum">已选择 <b id="s3SelCnt">0</b> 条</div>
+              <div class="pn-actions">
+                <button class="pn-cancel" onclick="s3ClosePanel()">取消</button>
+                <button class="pn-confirm" id="s3ConfirmBtn" onclick="s3Confirm()">确定</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="success" onclick="s3OpenPanel()">打开弹窗</button>
+      <button class="warn" onclick="s3ResetAll()">重置</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ===== 场景一：缩略图状态循环 ===== */
+  var s1State = 0;
+  function s1Cycle() {
+    s1State = (s1State + 1) % 4;
+    var ovl1 = document.getElementById('s1Ovl1');
+    var ovl2 = document.getElementById('s1Ovl2');
+    var ovl3 = document.getElementById('s1Ovl3');
+    var tag2 = document.getElementById('s1Tag2');
+    var tag3 = document.getElementById('s1Tag3');
+    var toast = document.getElementById('s1Toast');
+    var flt  = document.getElementById('s1Float');
+    var sum  = document.getElementById('s1Summary');
+    var no   = document.getElementById('s1No');
+    var amt  = document.getElementById('s1Amt');
+    var seller = document.getElementById('s1Seller');
+    var date = document.getElementById('s1Date');
+
+    // reset
+    [ovl1,ovl2,ovl3].forEach(function(o){ o.className='overlay'; o.innerHTML=''; });
+    tag2.className='corner-tag'; tag3.className='corner-tag';
+    toast.className='toast';
+    flt.className='mini-float'; sum.style.display='none';
+    [no,amt,seller,date].forEach(function(e){ e.className='form-input'; e.value=''; e.placeholder='识别后自动填入'; });
+
+    if (s1State === 0) {
+      // 全部识别中
+      ovl1.className='overlay dark'; ovl1.innerHTML='<div class="spinner"></div><span>识别中</span>';
+      ovl2.className='overlay dark'; ovl2.innerHTML='<div class="spinner"></div><span>识别中</span>';
+      ovl3.className='overlay dark'; ovl3.innerHTML='<div class="spinner"></div><span>识别中</span>';
+      flt.className='mini-float show';
+    } else if (s1State === 1) {
+      // 全部成功
+      ovl1.innerHTML=''; ovl2.innerHTML=''; ovl3.innerHTML='';
+      tag2.className='corner-tag ok'; tag3.className='corner-tag ok';
+      flt.className='mini-float';
+      no.className='form-input filled'; no.value='20260810001234';
+      amt.className='form-input filled'; amt.value='¥ 1,280.00';
+      seller.className='form-input filled'; seller.value='星辰信息技术有限公司';
+      date.className='form-input filled'; date.value='2026-08-08';
+    } else if (s1State === 2) {
+      // 混合：1成功 1识别中 1模糊失败 + toast
+      ovl1.innerHTML='';
+      ovl2.className='overlay dark'; ovl2.innerHTML='<div class="spinner"></div><span>识别中</span>';
+      ovl3.className='overlay fail'; ovl3.innerHTML='<span style="font-size:10px;">× 图片模糊</span>';
+      tag2.className='corner-tag ok';
+      tag3.className='corner-tag fail';
+      toast.className='toast show';
+      flt.className='mini-float show';
+      sum.style.display='flex';
+    } else {
+      // 关键业务失败：发票识别失败 + toast
+      ovl1.className='overlay fail'; ovl1.innerHTML='<span style="font-size:10px;">× 识别失败</span>';
+      ovl2.className='overlay fail'; ovl2.innerHTML='<span style="font-size:10px;">× 格式不符</span>';
+      ovl3.className='overlay fail'; ovl3.innerHTML='<span style="font-size:10px;">× 图片模糊</span>';
+      tag2.className='corner-tag fail'; tag3.className='corner-tag fail';
+      toast.className='toast show';
+      flt.className='mini-float';
+      sum.style.display='flex';
+    }
+  }
+
+  function s1ClickThumb(idx) {
+    // 模拟点击缩略图重新触发识别
+    s1State = 0;
+    s1Cycle();
+  }
+
+  /* ===== 场景二：Sheet 处理流程 ===== */
+  var s2SheetOpen = false;
+  function s2Trigger() {
+    if (s2SheetOpen) return;
+    s2SheetOpen = true;
+    document.getElementById('s2Sheet').classList.add('show');
+    // 初始化步骤状态
+    var items = document.querySelectorAll('#s2Steps .step-item');
+    items[0].querySelector('.right-side').innerHTML = '<span class="st-text">处理中</span><div class="step-spinner"></div>';
+    items[1].querySelector('.right-side').innerHTML = '<span class="st-text">等待中</span><div class="step-spinner" style="opacity:.3"></div>';
+    items[2].querySelector('.right-side').innerHTML = '<span class="st-text">等待中</span><div class="step-spinner" style="opacity:.3"></div>';
+
+    // 依次推进步骤
+    setTimeout(function() {
+      items[0].querySelector('.right-side').innerHTML = '<span class="st-text ok">已完成</span><div class="step-check">✓</div>';
+      items[1].querySelector('.right-side').innerHTML = '<span class="st-text">处理中</span><div class="step-spinner"></div>';
+    }, 1200);
+    setTimeout(function() {
+      items[1].querySelector('.right-side').innerHTML = '<span class="st-text ok">已完成</span><div class="step-check">✓</div>';
+      items[2].querySelector('.right-side').innerHTML = '<span class="st-text">处理中</span><div class="step-spinner"></div>';
+    }, 2400);
+    setTimeout(function() {
+      items[2].querySelector('.right-side').innerHTML = '<span class="st-text ok">已完成</span><div class="step-check">✓</div>';
+      // 完成后关闭 sheet 并新增资产卡片
+      setTimeout(function() {
+        s2CloseSheet();
+        var card = '<div class="asset-card ac-card-item">' +
+          '<button class="ac-del" onclick="s2DeleteCard(this)">×</button>' +
+          '<div class="ac-body">' +
+            '<div class="ac-row"><span class="ac-label">发票号码</span><span class="ac-val">20260810001234</span></div>' +
+            '<div class="ac-row"><span class="ac-label">开票时间</span><span class="ac-val">2026-08-08</span></div>' +
+            '<div class="ac-row"><span class="ac-label">客户方名称</span><span class="ac-val">星辰信息技术有限公司</span></div>' +
+            '<div class="ac-row"><span class="ac-label">开票类型</span><span class="ac-val">增值税专用发票</span></div>' +
+            '<div class="ac-row"><span class="ac-label">创建人</span><span class="ac-val">张三</span></div>' +
+          '</div>' +
+          '<div class="ac-expand">展开 ▼</div>' +
+        '</div>';
+        document.getElementById('s2CardWrap').innerHTML = card;
+        s2UpdateCardCount();
+        document.getElementById('s2ParentNote').style.display = 'flex';
+      }, 600);
+    }, 3600);
+  }
+  function s2CloseSheet() {
+    document.getElementById('s2Sheet').classList.remove('show');
+    s2SheetOpen = false;
+  }
+  function s2Reset() {
+    s2CloseSheet();
+    document.getElementById('s2CardWrap').innerHTML =
+      '<div class="asset-card"><div class="ac-empty">暂无发票数据，点击"添加"上传</div></div>';
+    document.getElementById('s2CardCount').textContent = '(0)';
+    document.getElementById('s2ParentNote').style.display = 'none';
+  }
+
+  function s2DeleteCard(el) {
+    el.closest('.ac-card-item').remove();
+    s2UpdateCardCount();
+    if (!document.querySelector('#s2CardWrap .ac-card-item')) {
+      document.getElementById('s2CardWrap').innerHTML =
+        '<div class="asset-card"><div class="ac-empty">暂无发票数据，点击"添加"上传</div></div>';
+      document.getElementById('s2ParentNote').style.display = 'none';
+    }
+  }
+
+  function s2UpdateCardCount() {
+    var cnt = document.querySelectorAll('#s2CardWrap .ac-card-item').length;
+    document.getElementById('s2CardCount').textContent = '(' + cnt + ')';
+  }
+
+  function s2ToggleCards() {
+    var wrap = document.getElementById('s2CardWrap');
+    var tog = document.getElementById('s2Toggle');
+    if (wrap.style.display === 'none') {
+      wrap.style.display = '';
+      tog.textContent = '▲';
+    } else {
+      wrap.style.display = 'none';
+      tog.textContent = '▼';
+    }
+  }
+
+  function s2ViewAll() {
+    // 简单提示
+  }
+
+  /* ===== 场景三：全屏弹窗上传解析 ===== */
+  var S3_DATA = [];
+  var S3_SEQ = 0;
+  var S3_MOCK = [
+    { fA:'67163448', fB:'2022-10-12', fC:'星辰信息技术有限公司', r:'success' },
+    { fA:'67163449', fB:'2022-10-13', fC:'海港云联技术有限公司', r:'success' },
+    { fA:'67163450', fB:'2022-10-14', fC:'南方数据技术有限公司', r:'duplicate' },
+    { fA:'67163451', fB:'2022-10-15', fC:'鹏程未来科技有限公司', r:'error' },
+    { fA:'67163452', fB:'2022-11-01', fC:'钱塘江岸数据有限公司', r:'success' },
+    { fA:'67163453', fB:'2022-11-05', fC:'锦城智创软件有限公司', r:'success' },
+  ];
+  var S3_MI = 0;
+
+  function s3OpenPanel() { document.getElementById('s3Panel').classList.add('show'); }
+  function s3ClosePanel() { document.getElementById('s3Panel').classList.remove('show'); }
+
+  function s3SimUpload() {
+    var zone = document.getElementById('s3UploadZone');
+    if (zone.classList.contains('uploading')) return;
+    zone.classList.add('uploading');
+    document.getElementById('s3UzIcon').textContent = '⏳';
+    zone.querySelector('.uz-text').textContent = '正在上传 3 个文件...';
+
+    // 清空旧数据
+    S3_DATA = [];
+    var files = [
+      { name:'发票_001.jpg', dup:false },
+      { name:'发票_002.jpg', dup:false },
+      { name:'发票_003.png', dup:false },
+    ];
+
+    files.forEach(function(f) {
+      S3_SEQ++;
+      S3_DATA.push({ id:'f'+S3_SEQ, filename:f.name, fA:'', fB:'', fC:'', status:'pending' });
+    });
+
+    s3Render();
+
+    setTimeout(function() {
+      S3_DATA.forEach(function(d){ d.status='parsing'; });
+      s3Render();
+    }, 500);
+
+    // 模拟逐条解析
+    S3_DATA.forEach(function(d, i) {
+      setTimeout(function() {
+        var m = S3_MOCK[S3_MI % S3_MOCK.length]; S3_MI++;
+        d.status = m.r;
+        if (m.r === 'success') { d.fA=m.fA; d.fB=m.fB; d.fC=m.fC; }
+        else { d.fA=d.fB=d.fC=''; }
+        s3Render();
+        if (i === S3_DATA.length-1) {
+          zone.classList.remove('uploading');
+          document.getElementById('s3UzIcon').textContent = '📎';
+          zone.querySelector('.uz-text').textContent = '点击或拖拽上传附件';
+        }
+      }, 1200 + i * 700);
+    });
+  }
+
+  function s3Render() {
+    var empty = document.getElementById('s3Empty');
+    var table = document.getElementById('s3RTable');
+    var tbody = document.getElementById('s3RTbody');
+    var listHd = document.getElementById('s3ListHd');
+    var summary = document.getElementById('s3Summary');
+
+    if (S3_DATA.length === 0) {
+      empty.style.display = ''; table.style.display = 'none';
+      listHd.style.display = 'none'; summary.style.display = 'none';
+      s3UpdateFoot(0);
+      return;
+    }
+
+    empty.style.display = 'none'; table.style.display = '';
+    listHd.style.display = 'flex'; summary.style.display = 'flex';
+
+    var ok=0,dup=0,err=0,proc=0;
+    tbody.innerHTML = S3_DATA.map(function(d) {
+      if (d.status==='success') ok++; else if (d.status==='duplicate') dup++;
+      else if (d.status==='error') err++; else if (d.status==='parsing') proc++;
+
+      var disabled = d.status!=='success' ? ' disabled' : '';
+      var checked = d.status==='success' ? ' checked' : '';
+      var fA = d.fA||'—', fB = d.fB||'—', fC = d.fC||'—';
+      var badge = '';
+      if (d.status==='parsing') badge = '<span class="s3-badge proc"><span class="spin"></span>识别中</span>';
+      else if (d.status==='success') badge = '<span class="s3-badge ok">✓ 已识别</span>';
+      else if (d.status==='duplicate') badge = '<span class="s3-badge dup">⚠ 重复</span>';
+      else badge = '<span class="s3-badge err">✗ 失败</span>';
+
+      var op = (d.status==='error')
+        ? '<button class="s3-retry" onclick="s3Retry(\''+d.id+'\')">重试</button>'
+        : (d.status==='duplicate' ? '<span style="color:#c0c4cc;font-size:10px;">不可选</span>' : '');
+      op += '<button class="s3-remove" onclick="s3Remove(\''+d.id+'\')">✕</button>';
+
+      return '<tr><td class="col-chk"><input type="checkbox" class="rchk s3-item"' + disabled + checked + ' data-id="'+d.id+'" onchange="s3OnCheck()"></td>' +
+        '<td><span class="fname">'+d.filename+'</span></td>' +
+        '<td><span class="fval">'+fA+'</span></td>' +
+        '<td><span class="fval">'+fB+'</span></td>' +
+        '<td><span class="fval">'+fC+'</span></td>' +
+        '<td class="col-status">'+badge+'</td>' +
+        '<td class="col-op">'+op+'</td></tr>';
+    }).join('');
+
+    document.getElementById('s3StatProc').innerHTML = '<b>'+proc+'</b> 解析中';
+    document.getElementById('s3StatOk').innerHTML = '<b>'+ok+'</b> 成功';
+    document.getElementById('s3StatDup').innerHTML = '<b>'+dup+'</b> 重复';
+    document.getElementById('s3StatErr').innerHTML = '<b>'+err+'</b> 失败';
+    document.getElementById('s3Count').textContent = '(共 '+S3_DATA.length+' 条)';
+
+    s3OnCheck();
+  }
+
+  function s3OnCheck() {
+    var cbs = document.querySelectorAll('#s3RTbody .s3-item:checked');
+    var cnt = cbs.length;
+    var fs = document.getElementById('s3FootSum');
+    var cb = document.getElementById('s3ConfirmBtn');
+    if (cnt>0) { fs.style.visibility='visible'; document.getElementById('s3SelCnt').textContent=cnt; cb.classList.add('active'); }
+    else { fs.style.visibility='hidden'; cb.classList.remove('active'); }
+
+    // 全选联动
+    var allCbs = document.querySelectorAll('#s3RTbody .s3-item:not(:disabled)');
+    var ca = document.getElementById('s3CheckAll');
+    if (allCbs.length===0) { ca.checked=false; ca.indeterminate=false; }
+    else if (cbs.length===allCbs.length) { ca.checked=true; ca.indeterminate=false; }
+    else { ca.checked=false; ca.indeterminate=cbs.length>0; }
+  }
+
+  function s3ToggleAll() {
+    var ca = document.getElementById('s3CheckAll');
+    document.querySelectorAll('#s3RTbody .s3-item:not(:disabled)').forEach(function(c){ c.checked=ca.checked; });
+    s3OnCheck();
+  }
+
+  function s3SelectAllOk() {
+    document.querySelectorAll('#s3RTbody .s3-item:not(:disabled)').forEach(function(c){ c.checked=true; });
+    s3OnCheck();
+  }
+
+  function s3Retry(id) {
+    var d = S3_DATA.find(function(x){ return x.id===id; }); if (!d) return;
+    d.status='parsing'; s3Render();
+    setTimeout(function(){
+      var m = S3_MOCK[S3_MI % S3_MOCK.length]; S3_MI++;
+      d.status=m.r;
+      if (m.r==='success'){ d.fA=m.fA; d.fB=m.fB; d.fC=m.fC; } else { d.fA=d.fB=d.fC=''; }
+      s3Render();
+    }, 800);
+  }
+
+  function s3Remove(id) {
+    S3_DATA = S3_DATA.filter(function(x){ return x.id!==id; });
+    s3Render();
+  }
+
+  function s3ClearAll() { S3_DATA=[]; s3Render(); s3ResetUploadZone(); }
+
+  function s3ResetUploadZone() {
+    var zone = document.getElementById('s3UploadZone');
+    zone.classList.remove('uploading');
+    document.getElementById('s3UzIcon').textContent = '📎';
+    zone.querySelector('.uz-text').textContent = '点击或拖拽上传附件';
+  }
+
+  function s3Confirm() {
+    var cbs = document.querySelectorAll('#s3RTbody .s3-item:checked');
+    if (cbs.length===0) return;
+    s3ClosePanel();
+
+    // 构建卡片 HTML
+    var cards = '';
+    cbs.forEach(function(c) {
+      var d = S3_DATA.find(function(x){ return x.id===c.getAttribute('data-id'); });
+      if (!d) return;
+      cards += '<div class="asset-card ac-card-item">' +
+        '<button class="ac-del" onclick="s3DeleteCard(this)">×</button>' +
+        '<div class="ac-body">' +
+          '<div class="ac-row"><span class="ac-label">发票号码</span><span class="ac-val">'+d.fA+'</span></div>' +
+          '<div class="ac-row"><span class="ac-label">开票时间</span><span class="ac-val">'+d.fB+'</span></div>' +
+          '<div class="ac-row"><span class="ac-label">客户方名称</span><span class="ac-val">'+d.fC+'</span></div>' +
+          '<div class="ac-row"><span class="ac-label">开票类型</span><span class="ac-val">增值税专用发票</span></div>' +
+          '<div class="ac-row"><span class="ac-label">创建人</span><span class="ac-val">张三</span></div>' +
+        '</div>' +
+        '<div class="ac-expand">展开 ▼</div>' +
+      '</div>';
+    });
+
+    document.getElementById('s3CardWrap').innerHTML = cards;
+    s3UpdateCardCount();
+    document.getElementById('s3ParentNote').style.display = 'flex';
+  }
+
+  function s3DeleteCard(el) {
+    el.closest('.ac-card-item').remove();
+    s3UpdateCardCount();
+    if (!document.querySelector('.ac-card-item')) {
+      document.getElementById('s3CardWrap').innerHTML = '<div class="asset-card"><div class="ac-empty">暂无发票数据，点击"添加"上传</div></div>';
+      document.getElementById('s3CardCount').textContent = '(0)';
+      document.getElementById('s3ParentNote').style.display = 'none';
+    }
+  }
+
+  function s3UpdateCardCount() {
+    var cnt = document.querySelectorAll('.ac-card-item').length;
+    document.getElementById('s3CardCount').textContent = '('+cnt+')';
+  }
+
+  function s3ViewAll() {
+    // 简单的提示交互
+    alert('查看全部资产记录（示例）');
+  }
+
+  var S3_CARDS_EXPANDED = true;
+  function s3ToggleCards() {
+    var wrap = document.getElementById('s3CardWrap');
+    var btn = document.getElementById('s3Toggle');
+    S3_CARDS_EXPANDED = !S3_CARDS_EXPANDED;
+    wrap.style.display = S3_CARDS_EXPANDED ? 'block' : 'none';
+    btn.textContent = S3_CARDS_EXPANDED ? '▲' : '▼';
+  }
+
+  function s3ResetAll() {
+    S3_DATA=[]; s3Render(); s3ResetUploadZone();
+    document.getElementById('s3CardWrap').innerHTML = '<div class="asset-card"><div class="ac-empty">暂无发票数据，点击"添加"上传</div></div>';
+    document.getElementById('s3CardCount').textContent = '(0)';
+    document.getElementById('s3ParentNote').style.display = 'none';
+  }
+
+  // 初始化状态
+  s1Cycle(); s1Cycle(); // 从全部识别中开始
+</script>
+
+</body>
+</html>

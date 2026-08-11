@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCR 智能识别回填设计</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Helvetica Neue', sans-serif; background: #f5f7fa; color: #303133; }
+  .hero { background: linear-gradient(135deg, #409eff 0%, #6c5ce7 100%); color: #fff; padding: 64px 24px 48px; text-align: center; }
+  .hero h1 { margin: 0 0 12px; font-size: 28px; font-weight: 600; letter-spacing: 1px; }
+  .hero p { margin: 0 auto; max-width: 720px; line-height: 1.7; opacity: .92; font-size: 14px; }
+  .container { max-width: 980px; margin: -32px auto 0; padding: 0 16px 80px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+  .card { background: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.06); overflow: hidden; transition: transform .2s, box-shadow .2s; text-decoration: none; color: inherit; display: block; }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 10px 28px rgba(64,158,255,.18); }
+  .card .thumb { height: 180px; background: linear-gradient(135deg, #ecf5ff 0%, #f0e6ff 100%); display: flex; align-items: center; justify-content: center; font-size: 56px; }
+  .card .body { padding: 20px 22px; }
+  .card h3 { margin: 0 0 8px; font-size: 17px; color: #303133; }
+  .card .meta { font-size: 12px; color: #909399; margin-bottom: 10px; }
+  .card .desc { font-size: 13px; color: #606266; line-height: 1.6; }
+  .card .tag { display: inline-block; margin-top: 12px; padding: 4px 10px; background: #409eff; color: #fff; border-radius: 12px; font-size: 12px; }
+  .card.app .tag { background: #67c23a; }
+  .card.doc .tag { background: #e6a23c; }
+  .footer { text-align: center; padding: 24px; color: #909399; font-size: 12px; }
+  .footer a { color: #409eff; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>OCR 智能识别回填 · 交互设计</h1>
+  <p>覆盖 Web 端与 APP 端共三大业务场景的设计原型：附件上传 → OCR 识别 → 字段/资产表回填的完整交互链路。</p>
+</div>
+<div class="container">
+  <div class="grid">
+    <a class="card" href="ocr-web-design.html">
+      <div class="thumb">🖥️</div>
+      <div class="body">
+        <h3>Web 端三场景设计</h3>
+        <div class="meta">浏览器 Mockup · 50 KB</div>
+        <div class="desc">工单附件 → OCR 识别 → 回填字段 / 资产表，外加资产表内自定义插件 iframe 弹窗完整上传/解析/选择/回填流程。</div>
+        <span class="tag">Web · 3 场景</span>
+      </div>
+    </a>
+    <a class="card app" href="ocr-app-design2.html">
+      <div class="thumb">📱</div>
+      <div class="body">
+        <h3>APP 端三场景设计（v2）</h3>
+        <div class="meta">三台手机并排 · 49 KB</div>
+        <div class="desc">缩略图状态 + 极小浮层、底部 Sheet 处理流程、全屏弹窗上传/解析/选择，资产表卡片式贴合工单实际样式。</div>
+        <span class="tag">App · 3 场景</span>
+      </div>
+    </a>
+    <a class="card app" href="ocr-app-design.html">
+      <div class="thumb">📲</div>
+      <div class="body">
+        <h3>APP 端双场景设计（v1）</h3>
+        <div class="meta">两台手机 · 20 KB</div>
+        <div class="desc">早期版本：附件缩略图状态识别 + 上滑 Sheet 三步流程。已被 v2 取代，保留作为对比参考。</div>
+        <span class="tag">App · 2 场景</span>
+      </div>
+    </a>
+    <a class="card doc" href="ocr.html">
+      <div class="thumb">📄</div>
+      <div class="body">
+        <h3>原始 OCR 设计稿</h3>
+        <div class="meta">单页 · 14 KB</div>
+        <div class="desc">最早的 OCR 发票识别回填单页设计，是后续所有迭代的起点。</div>
+        <span class="tag">原型</span>
+      </div>
+    </a>
+  </div>
+</div>
+<div class="footer">
+  OCR 智能识别回填交互设计 · <a href="https://github.com">GitHub</a>
+</div>
+</body>
+</html>

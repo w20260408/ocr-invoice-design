@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>App 端 OCR 智能识别 · 双场景设计</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f6f8; padding: 24px; color: #333;
+  }
+
+  .header { max-width: 960px; margin: 0 auto 24px; text-align: center; }
+  .header h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .header .desc {
+    font-size: 12px; color: #909399; line-height: 1.6;
+  }
+  .header .desc span { font-weight: 600; }
+  .header .desc .c-blue { color: #409eff; }
+  .header .desc .c-orange { color: #e6a23c; }
+  .header .desc .c-red { color: #f56c6c; }
+
+  /* ===== 双机并排 ===== */
+  .row { display: flex; justify-content: center; gap: 40px; max-width: 960px; margin: 0 auto; flex-wrap: wrap; }
+
+  .scenario-tag {
+    text-align: center; margin-bottom: 10px; font-size: 13px; font-weight: 600; color: #333;
+  }
+  .scenario-tag .num {
+    display: inline-block; width: 20px; height: 20px; line-height: 20px;
+    border-radius: 50%; background: #409eff; color: #fff; margin-right: 6px; font-size: 12px;
+  }
+
+  /* ===== 手机壳 ===== */
+  .phone {
+    width: 375px; height: 720px; background: #fff;
+    border-radius: 32px; overflow: hidden; position: relative;
+    box-shadow: 0 8px 32px rgba(0,0,0,.12); border: 8px solid #1a1a1a;
+  }
+  .phone .status-bar {
+    height: 28px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; font-weight: 600; background: #fff; color: #000;
+  }
+  .phone .nav {
+    height: 44px; padding: 0 16px; display: flex; align-items: center; justify-content: center;
+    background: #fff; border-bottom: 1px solid #f0f0f0; position: relative;
+    font-size: 16px; font-weight: 600;
+  }
+  .phone .nav .back { position: absolute; left: 12px; font-size: 20px; color: #333; }
+  .phone .content {
+    height: calc(100% - 28px - 44px); overflow-y: auto; background: #f5f6f8; position: relative;
+  }
+
+  /* ===== 表单 ===== */
+  .form-card {
+    background: #fff; margin: 12px; border-radius: 8px; padding: 16px;
+  }
+  .form-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  .form-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .form-label { font-size: 13px; color: #666; width: 70px; flex-shrink: 0; padding-top: 6px; }
+  .form-input {
+    flex: 1; padding: 6px 10px; border: 1px solid #e4e7ed; border-radius: 4px;
+    font-size: 13px; background: #fafafa; color: #999;
+  }
+  .form-input.filled { color: #333; background: #fff; }
+  .form-input.filled-auto {
+    color: #67c23a; background: #f0f9eb; border-color: #b7eb8f; font-weight: 500;
+  }
+
+  /* ===== 父页面 toast ===== */
+  .toast {
+    margin: 10px 12px; padding: 10px 12px; background: #f56c6c; color: #fff;
+    border-radius: 6px; font-size: 12px; display: none; align-items: center; gap: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.1); position: relative; z-index: 5;
+  }
+  .toast.show { display: flex; }
+
+  /* ===== 图例标注 ===== */
+  .legend {
+    display: flex; gap: 16px; margin: 10px 12px; font-size: 10px; color: #666; flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 2px;
+  }
+  .legend-dot.native { background: #909399; }
+  .legend-dot.plugin-data { background: #409eff; }
+  .legend-dot.iframe-ui { background: #e6a23c; }
+  .legend-dot.parent-dom { background: #f56c6c; }
+
+  /* ===== 附件区 ===== */
+  .att-section { padding: 0 16px 16px; }
+  .att-label {
+    font-size: 13px; color: #666; margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .badge {
+    font-size: 11px; padding: 2px 8px; background: #f0f9eb; color: #67c23a;
+    border-radius: 10px; font-weight: 500; display: inline-block;
+  }
+  .badge.warn { background: #fdf6ec; color: #e6a23c; }
+  .badge.error { background: #fef0f0; color: #f56c6c; }
+
+  .att-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+  .att-item {
+    position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden;
+    background: #e4e7ed;
+  }
+  .att-item .bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #a8c0d6 0%, #6b8cae 100%);
+  }
+  .att-item .bg.b2 { background: linear-gradient(135deg, #f5b88c 0%, #c9824f 100%); }
+  .att-item .bg.b3 { background: linear-gradient(135deg, #b8c4d6 0%, #7585a0 100%); }
+
+  /* 缩略图上的状态层（由插件修改附件字段数据控制） */
+  .att-item .overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 11px; color: #fff; text-align: center; padding: 6px;
+  }
+  .att-item .overlay.dark  { background: rgba(0,0,0,.55); }
+  .att-item .overlay.fail  { background: rgba(245,108,108,.85); }
+  .att-item .overlay.dup   { background: rgba(230,162,60,.85); }
+
+  .spinner {
+    width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin .8s linear infinite; margin-bottom: 4px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .corner-tag {
+    position: absolute; top: 4px; right: 4px; width: 18px; height: 18px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: #fff; z-index: 2;
+  }
+  .corner-tag.ok { background: #67c23a; }
+  .corner-tag.fail { background: #f56c6c; }
+
+  .add-btn {
+    aspect-ratio: 1; border: 1.5px dashed #c0c4cc; border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #909399; font-size: 22px; background: #fafbfc;
+  }
+  .add-btn .tip { font-size: 10px; margin-top: 2px; }
+
+  /* ===== 极小 AI 识别中浮层（插件 iframe 自己弹） ===== */
+  .mini-float {
+    position: absolute; bottom: 80px; right: 12px; z-index: 20;
+    background: rgba(30,30,30,.92); color: #fff;
+    border-radius: 20px; padding: 8px 14px;
+    display: none; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+    animation: popIn .3s ease;
+    pointer-events: none;
+  }
+  .mini-float.show { display: flex; }
+  @keyframes popIn {
+    0% { transform: scale(.8) translateY(8px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .mini-float .mf-spinner {
+    width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.25);
+    border-top-color: #409eff; border-radius: 50%;
+    animation: spin .8s linear infinite; flex-shrink: 0;
+  }
+  .mini-float .mf-done {
+    width: 14px; height: 14px; border-radius: 50%; background: #67c23a;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; flex-shrink: 0; display: none;
+  }
+  .mini-float .mf-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #409eff;
+    animation: dotPulse .8s infinite; flex-shrink: 0;
+  }
+  .mini-float .mf-dot:nth-child(2) { animation-delay: .15s; }
+  .mini-float .mf-dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes dotPulse {
+    0%, 100% { opacity: .3; }
+    50% { opacity: 1; }
+  }
+
+  /* 标注横条 */
+  .annotation-bar {
+    margin: 6px 12px 2px; padding: 4px 10px; border-radius: 4px;
+    font-size: 10px; font-weight: 500; display: flex; align-items: center; gap: 6px;
+  }
+  .annotation-bar.native  { background: rgba(144,147,153,.08); color: #909399; }
+  .annotation-bar.data    { background: rgba(64,158,255,.08); color: #409eff; }
+  .annotation-bar.ui      { background: rgba(230,162,60,.08); color: #e6a23c; }
+  .annotation-bar.parent  { background: rgba(245,108,108,.08); color: #f56c6c; }
+
+  /* ===== 场景二 ===== */
+  .sheet-mask {
+    position: absolute; inset: 0; background: rgba(0,0,0,.4); z-index: 10;
+  }
+  .sheet-mask .image-area {
+    height: 60%; position: relative; overflow: hidden;
+  }
+  .sheet-mask .image-area .img-bg {
+    position: absolute; inset: 0; background: linear-gradient(180deg, #555 0%, #333 100%);
+  }
+  .sheet-mask .image-area .invoice {
+    position: absolute; top: 20%; left: 10%; right: 10%; height: 50%;
+    background: linear-gradient(135deg, #d4c5a0 0%, #b8a87a 100%); border-radius: 4px;
+  }
+
+  .sheet {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: #fff; border-radius: 16px 16px 0 0;
+    padding: 16px 0 24px; z-index: 11;
+    animation: slideUp .35s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .drag-handle { width: 36px; height: 4px; background: #e4e7ed; border-radius: 2px; margin: 0 auto 12px; }
+  .sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px 16px; border-bottom: 1px solid #f5f5f5;
+  }
+  .sheet-title { font-size: 15px; font-weight: 600; }
+  .sheet-close { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 18px; }
+
+  .step-list { padding: 8px 20px; }
+  .step-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0; font-size: 14px; color: #333;
+  }
+  .step-item + .step-item { border-top: 1px solid #fafafa; }
+  .step-item .name { font-weight: 500; }
+  .step-item .right-area { display: flex; align-items: center; gap: 8px; }
+  .step-item .status-text { font-size: 12px; color: #999; }
+  .step-item .status-text.ok { color: #67c23a; }
+  .step-spinner {
+    width: 16px; height: 16px; border: 2px solid #f0f0f0;
+    border-top-color: #e6a23c; border-radius: 50%; animation: spin .8s linear infinite;
+  }
+  .step-check {
+    width: 16px; height: 16px; border-radius: 50%; background: #67c23a;
+    color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ===== 底部按钮 ===== */
+  .controls { text-align: center; margin-top: 24px; }
+  .controls button {
+    padding: 8px 18px; border: 1px solid #409eff; background: #fff; color: #409eff;
+    border-radius: 18px; cursor: pointer; font-size: 13px; margin: 0 4px 8px;
+    transition: all .2s;
+  }
+  .controls button:hover { background: #409eff; color: #fff; }
+  .controls button.warn { border-color: #e6a23c; color: #e6a23c; }
+  .controls button.warn:hover { background: #e6a23c; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>App 端 OCR 智能识别 · 双场景设计</h1>
+  <div class="desc">
+    图例：
+    <span style="color:#909399;">■ 原生页面</span>&nbsp;&nbsp;
+    <span class="c-blue">■ 插件修改附件字段数据</span>&nbsp;&nbsp;
+    <span class="c-orange">■ 插件 iframe UI</span>&nbsp;&nbsp;
+    <span class="c-red">■ 父页面 DOM（by postMessage）</span>
+  </div>
+</div>
+
+<div class="row">
+
+  <!-- ==================== 场景一 ==================== -->
+  <div>
+    <div class="scenario-tag"><span class="num">1</span>附件缩略图状态 + 极小"AI 识别中"浮层</div>
+    <div class="phone">
+      <div class="status-bar"><span>11:00</span><span style="display:flex;gap:4px;">4G 5G ⚡</span></div>
+      <div class="nav"><span class="back">‹</span><span>新建工单</span></div>
+      <div class="content" id="s1Content">
+
+        <!-- toast: 父页面 DOM（插件 postMessage 触发） -->
+        <div class="toast" id="toastS1">
+          <span>!</span>
+          <span>发票识别失败，请检查图片清晰度后重新上传</span>
+        </div>
+
+        <!-- 表单：原生页面 -->
+        <div class="annotation-bar native">
+          <span>📄</span> 原生页面 · 工单表单
+        </div>
+        <div class="form-card">
+          <div class="form-title">工单信息</div>
+          <div class="form-row"><div class="form-label">发票号</div><input class="form-input filled-auto" value="20260810001234"></div>
+          <div class="form-row"><div class="form-label">金额</div><input class="form-input filled-auto" value="¥ 1,280.00"></div>
+          <div class="form-row"><div class="form-label">开票方</div><input class="form-input filled-auto" value="北京智创科技有限公司"></div>
+        </div>
+
+        <!-- 附件区 -->
+        <div class="annotation-bar data">
+          <span>📎</span> 插件通过修改附件字段数据 → 控制缩略图蒙层/spinner/角标
+        </div>
+        <div class="att-section">
+          <div class="att-label">
+            <span>发票附件 (3)</span>
+            <!-- 徽章：父页面 DOM -->
+            <span class="badge" id="attBadge">1 张识别中</span>
+          </div>
+
+          <div class="att-grid">
+            <!-- 缩略图1: 识别中（插件写入蒙层+spinner） -->
+            <div class="att-item" id="att1">
+              <div class="bg"></div>
+              <div class="overlay dark" id="overlay1">
+                <div class="spinner"></div><span>识别中</span>
+              </div>
+            </div>
+
+            <!-- 缩略图2: 识别成功（插件写入 ✓ 角标） -->
+            <div class="att-item" id="att2">
+              <div class="bg b2"></div>
+              <div class="overlay" id="overlay2" style="background:transparent;"></div>
+              <div class="corner-tag ok" id="tag2" style="display:none;">✓</div>
+            </div>
+
+            <!-- 缩略图3: 识别失败（插件写入红色蒙层+!角标） -->
+            <div class="att-item" id="att3">
+              <div class="bg b3"></div>
+              <div class="overlay fail" id="overlay3" style="display:none;">
+                <span style="font-size:10px;">× 图片模糊</span>
+              </div>
+              <div class="corner-tag fail" id="tag3" style="display:none;">!</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 总结条: 父页面 DOM -->
+        <div class="annotation-bar parent" id="summaryBar" style="display:none;margin-top:0;">
+          <span>📢</span> 父页面 DOM：插件 postMessage({type:'ocr-result'}) 触发
+        </div>
+
+        <!-- ===== 极小 AI 识别中浮层（插件 iframe 弹出的 UI） ===== -->
+        <div class="mini-float show" id="miniFloat">
+          <div class="mf-spinner"></div>
+          <span>AI 识别中...</span>
+        </div>
+        <div class="annotation-bar ui" style="margin-top:0;">
+          <span>🤖</span> 插件 iframe 弹出的极简浮层（右下角，不挡操作）
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 场景二 ==================== -->
+  <div>
+    <div class="scenario-tag"><span class="num">2</span>上滑 Sheet（整个 sheet 在 iframe 内）</div>
+    <div class="phone">
+      <div class="status-bar"><span>11:00</span><span style="display:flex;gap:4px;">4G 5G ⚡</span></div>
+      <div class="nav"><span class="back">‹</span><span>智能识别</span></div>
+
+      <div style="position:relative;flex:1;height:calc(100% - 28px - 44px);">
+        <div class="annotation-bar native" style="margin:6px 8px;">
+          <span>📄</span> 原生页面内容（被 sheet 半遮罩覆盖）
+        </div>
+
+        <!-- sheet 层是 iframe 内容 -->
+        <div class="sheet-mask" style="position:absolute;">
+          <div style="position:absolute;top:4px;right:12px;z-index:20;font-size:10px;padding:2px 8px;background:#e6a23c;color:#fff;border-radius:8px;font-weight:500;">
+            插件 iframe
+          </div>
+
+          <!-- 背景图片区域 -->
+          <div class="image-area">
+            <div class="img-bg"></div>
+            <div class="invoice"></div>
+          </div>
+
+          <!-- sheet -->
+          <div class="sheet">
+            <div class="drag-handle"></div>
+            <div class="sheet-head">
+              <div class="sheet-title">系统处理中</div>
+              <div class="sheet-close">×</div>
+            </div>
+            <div class="step-list" id="s2Steps">
+              <div class="step-item">
+                <span class="name">发票压缩上传</span>
+                <div class="right-area">
+                  <span class="status-text ok">已完成</span>
+                  <div class="step-check">✓</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <span class="name">发票识别验真</span>
+                <div class="right-area">
+                  <span class="status-text">处理中</span>
+                  <div class="step-spinner"></div>
+                </div>
+              </div>
+              <div class="step-item">
+                <span class="name">发票合规性校验</span>
+                <div class="right-area">
+                  <span class="status-text">等待中</span>
+                  <div class="step-spinner" style="opacity:.3"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 演示切换 -->
+<div class="controls">
+  <button onclick="toggleS1()">场景一 · 切换状态（全成功 / 识别中 / 混合失败）</button>
+  <button class="warn" onclick="progressS2()">场景二 · 推进步骤</button>
+</div>
+
+<script>
+  // ===== 场景一：循环切换 3 种状态 =====
+  var s1Idx = 0;
+  function toggleS1() {
+    s1Idx = (s1Idx + 1) % 3;
+    var overlay1 = document.getElementById('overlay1');
+    var overlay2 = document.getElementById('overlay2');
+    var overlay3 = document.getElementById('overlay3');
+    var tag2 = document.getElementById('tag2');
+    var tag3 = document.getElementById('tag3');
+    var badge = document.getElementById('attBadge');
+    var toast = document.getElementById('toastS1');
+    var miniFloat = document.getElementById('miniFloat');
+    var summaryBar = document.getElementById('summaryBar');
+
+    // 重置
+    overlay1.className = 'overlay';
+    overlay1.innerHTML = '';
+    overlay2.style.display = 'flex'; overlay2.style.background = 'transparent'; overlay2.innerHTML = '';
+    overlay3.style.display = 'none'; overlay3.innerHTML = '';
+    tag2.style.display = 'none';
+    tag3.style.display = 'none';
+    toast.className = 'toast';
+    badge.className = 'badge';
+    summaryBar.style.display = 'none';
+    miniFloat.className = 'mini-float';
+
+    if (s1Idx === 0) {
+      // 状态A：全部识别中 → 插件修改缩略图为蒙层+spinner，右下角浮层"AI识别中"
+      overlay1.className = 'overlay dark';
+      overlay1.innerHTML = '<div class="spinner"></div><span>识别中</span>';
+      overlay2.className = 'overlay dark';
+      overlay2.innerHTML = '<div class="spinner"></div><span>识别中</span>';
+      overlay3.style.display = 'flex';
+      overlay3.className = 'overlay dark';
+      overlay3.innerHTML = '<div class="spinner"></div><span>识别中</span>';
+      badge.className = 'badge warn';
+      badge.textContent = '3 张识别中';
+      miniFloat.className = 'mini-float show';
+    } else if (s1Idx === 1) {
+      // 状态B：全部识别成功 → 蒙层消失，✓ 角标出现，浮层消失，字段自动回填
+      overlay1.innerHTML = '';
+      overlay2.innerHTML = '';
+      overlay3.style.display = 'flex';
+      overlay3.className = 'overlay';
+      overlay3.innerHTML = '';
+      tag2.style.display = 'flex';
+      tag3.style.display = 'flex';
+      badge.textContent = '3 张已识别';
+      miniFloat.className = 'mini-float'; // 消失
+    } else {
+      // 状态C：混合（1成功 1失败 1识别中）+ toast 出现
+      overlay1.className = 'overlay dark';
+      overlay1.innerHTML = '<div class="spinner"></div><span>识别中</span>';
+      overlay2.innerHTML = '';
+      tag2.style.display = 'flex';
+      overlay3.style.display = 'flex';
+      overlay3.className = 'overlay fail';
+      overlay3.innerHTML = '<span style="font-size:10px;">× 图片模糊</span>';
+      tag3.style.display = 'flex';
+      badge.className = 'badge error';
+      badge.textContent = '1 张失败';
+      toast.className = 'toast show';
+      miniFloat.className = 'mini-float show';
+      summaryBar.style.display = 'flex';
+    }
+  }
+
+  // ===== 场景二：推进步骤 =====
+  var s2Step = 1;
+  function progressS2() {
+    s2Step++;
+    if (s2Step > 4) s2Step = 1;
+    var items = document.querySelectorAll('#s2Steps .step-item');
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      if (i < s2Step - 1) {
+        item.querySelector('.right-area').innerHTML = '<span class="status-text ok">已完成</span><div class="step-check">✓</div>';
+      } else if (i === s2Step - 1) {
+        item.querySelector('.right-area').innerHTML = '<span class="status-text">处理中</span><div class="step-spinner"></div>';
+      } else {
+        item.querySelector('.right-area').innerHTML = '<span class="status-text">等待中</span><div class="step-spinner" style="opacity:.3"></div>';
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
