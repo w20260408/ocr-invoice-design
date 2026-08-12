@@ -101,7 +101,7 @@
   }
   .att-entry-row .ae-arrow { color: #c0c4cc; font-size: 18px; }
 
-  .att-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .att-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
   .att-item {
     position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: #e4e7ed;
     cursor: pointer; transition: transform .15s;
@@ -113,6 +113,36 @@
   }
   .att-item .bg.b2 { background: linear-gradient(135deg, #f5b88c 0%, #c9824f 100%); }
   .att-item .bg.b3 { background: linear-gradient(135deg, #b8c4d6 0%, #7585a0 100%); }
+
+  /* PDF 文件项（真实截图风格） */
+  .att-file {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; background: #fff; border-radius: 8px;
+    margin-top: 10px; cursor: pointer;
+  }
+  .att-file .file-icon {
+    width: 36px; height: 36px; border-radius: 4px; flex-shrink: 0;
+    background: linear-gradient(135deg, #ed6c47 0%, #d75034 100%);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 16px;
+    box-shadow: 0 1px 3px rgba(215,80,52,.25);
+    position: relative;
+  }
+  .att-file .file-icon::after {
+    content: ''; position: absolute; top: 0; right: 0;
+    border-style: solid; border-width: 0 6px 6px 0;
+    border-color: transparent #fff transparent transparent;
+  }
+  .att-file .file-name {
+    flex: 1; font-size: 13px; color: #303133;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .att-file .file-view {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #f5f7fa; color: #909399;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
 
   .att-item .overlay {
     position: absolute; inset: 0; display: flex; flex-direction: column;
@@ -449,11 +479,12 @@
               <div class="overlay dark" id="s1Ovl2"><div class="spinner"></div><span>识别中</span></div>
               <div class="corner-tag" id="s1Tag2">✓</div>
             </div>
-            <div class="att-item" id="s1T3" onclick="s1ClickThumb(2)">
-              <div class="bg b3"></div>
-              <div class="overlay dark" id="s1Ovl3"><div class="spinner"></div><span>识别中</span></div>
-              <div class="corner-tag" id="s1Tag3">✓</div>
-            </div>
+          </div>
+          <!-- PDF 文件项 -->
+          <div class="att-file" id="s1PdfItem">
+            <div class="file-icon">P</div>
+            <div class="file-name">dzfp_2611700000073168...</div>
+            <div class="file-view">👁</div>
           </div>
         </div>
 
@@ -507,7 +538,7 @@
         <!-- 资产子表（卡片样式） -->
         <div class="asset-card-section">
           <div class="asset-card-header">
-            <div class="asset-card-title">发票附件 <span id="s2CardCount">(0)</span></div>
+            <div class="asset-card-title">发票附件</div>
             <div class="asset-card-toggle" id="s2Toggle" onclick="s2ToggleCards()">▲</div>
           </div>
           <div class="asset-card-links">
@@ -691,9 +722,7 @@
     s1State = (s1State + 1) % 4;
     var ovl1 = document.getElementById('s1Ovl1');
     var ovl2 = document.getElementById('s1Ovl2');
-    var ovl3 = document.getElementById('s1Ovl3');
     var tag2 = document.getElementById('s1Tag2');
-    var tag3 = document.getElementById('s1Tag3');
     var flt  = document.getElementById('s1Float');
     var sum  = document.getElementById('s1Summary');
     var no   = document.getElementById('s1No');
@@ -702,8 +731,8 @@
     var date = document.getElementById('s1Date');
 
     // reset
-    [ovl1,ovl2,ovl3].forEach(function(o){ o.className='overlay'; o.innerHTML=''; });
-    tag2.className='corner-tag'; tag3.className='corner-tag';
+    [ovl1,ovl2].forEach(function(o){ o.className='overlay'; o.innerHTML=''; });
+    tag2.className='corner-tag';
     flt.className='mini-float'; sum.style.display='none';
     [no,amt,seller,date].forEach(function(e){ e.className='form-input'; e.value=''; e.placeholder='识别后自动填入'; });
 
@@ -711,32 +740,28 @@
       // 全部识别中
       ovl1.className='overlay dark'; ovl1.innerHTML='<div class="spinner"></div><span>识别中</span>';
       ovl2.className='overlay dark'; ovl2.innerHTML='<div class="spinner"></div><span>识别中</span>';
-      ovl3.className='overlay dark'; ovl3.innerHTML='<div class="spinner"></div><span>识别中</span>';
       flt.className='mini-float show';
     } else if (s1State === 1) {
       // 全部成功
-      ovl1.innerHTML=''; ovl2.innerHTML=''; ovl3.innerHTML='';
-      tag2.className='corner-tag ok'; tag3.className='corner-tag ok';
+      ovl1.innerHTML=''; ovl2.innerHTML='';
+      tag2.className='corner-tag ok';
       flt.className='mini-float';
       no.className='form-input filled'; no.value='20260810001234';
       amt.className='form-input filled'; amt.value='¥ 1,280.00';
       seller.className='form-input filled'; seller.value='星辰信息技术有限公司';
       date.className='form-input filled'; date.value='2026-08-08';
     } else if (s1State === 2) {
-      // 混合：1成功 1识别中 1模糊失败
+      // 混合：1成功 1模糊失败
       ovl1.innerHTML='';
-      ovl2.className='overlay dark'; ovl2.innerHTML='<div class="spinner"></div><span>识别中</span>';
-      ovl3.className='overlay fail'; ovl3.innerHTML='<span style="font-size:10px;">× 图片模糊</span>';
+      ovl2.className='overlay fail'; ovl2.innerHTML='<span style="font-size:10px;">× 图片模糊</span>';
       tag2.className='corner-tag ok';
-      tag3.className='corner-tag fail';
       flt.className='mini-float show';
       sum.style.display='flex';
     } else {
-      // 关键业务失败：全部识别失败
+      // 全部识别失败
       ovl1.className='overlay fail'; ovl1.innerHTML='<span style="font-size:10px;">× 识别失败</span>';
-      ovl2.className='overlay fail'; ovl2.innerHTML='<span style="font-size:10px;">× 格式不符</span>';
-      ovl3.className='overlay fail'; ovl3.innerHTML='<span style="font-size:10px;">× 图片模糊</span>';
-      tag2.className='corner-tag fail'; tag3.className='corner-tag fail';
+      ovl2.className='overlay fail'; ovl2.innerHTML='<span style="font-size:10px;">× 图片模糊</span>';
+      tag2.className='corner-tag fail';
       flt.className='mini-float';
       sum.style.display='flex';
     }
@@ -810,7 +835,6 @@
               '<div class="ac-expand">\u5c55\u5f00 \u25bc</div>' +
             '</div>';
             document.getElementById('s2CardWrap').innerHTML = card;
-            s2UpdateCardCount();
             document.getElementById('s2ParentNote').style.display = 'flex';
           }, 600);
         }, 1200);
@@ -845,23 +869,16 @@
     s2CloseSheet();
     document.getElementById('s2CardWrap').innerHTML =
       '<div class="asset-card"><div class="ac-empty">\u6682\u65e0\u53d1\u7968\u6570\u636e\uff0c\u70b9\u51fb\u201c\u6dfb\u52a0\u201d\u4e0a\u4f20</div></div>';
-    document.getElementById('s2CardCount').textContent = '(0)';
     document.getElementById('s2ParentNote').style.display = 'none';
   }
 
   function s2DeleteCard(el) {
     el.closest('.ac-card-item').remove();
-    s2UpdateCardCount();
     if (!document.querySelector('#s2CardWrap .ac-card-item')) {
       document.getElementById('s2CardWrap').innerHTML =
         '<div class="asset-card"><div class="ac-empty">暂无发票数据，点击"添加"上传</div></div>';
       document.getElementById('s2ParentNote').style.display = 'none';
     }
-  }
-
-  function s2UpdateCardCount() {
-    var cnt = document.querySelectorAll('#s2CardWrap .ac-card-item').length;
-    document.getElementById('s2CardCount').textContent = '(' + cnt + ')';
   }
 
   function s2ToggleCards() {
