@@ -561,6 +561,26 @@
               <span class="ae-arrow">›</span>
             </div>
           </div>
+          <div class="att-grid" id="s2ThumbGrid">
+            <div class="att-item" id="s2T1">
+              <div class="bg"></div>
+              <div class="overlay dark" id="s2Ovl1"><div class="spinner"></div><span>识别中</span></div>
+            </div>
+            <div class="att-item" id="s2T2">
+              <div class="bg b2"></div>
+              <div class="overlay dark" id="s2Ovl2"><div class="spinner"></div><span>识别中</span></div>
+              <div class="corner-tag" id="s2Tag2">✓</div>
+            </div>
+          </div>
+          <!-- PDF 文件项 -->
+          <div class="att-file" id="s2PdfItem">
+            <div class="file-icon">
+              P
+              <div class="file-icon-corner" id="s2PdfBadge"></div>
+            </div>
+            <div class="file-name">dzfp_2611700000073168...</div>
+            <div class="file-view" id="s2PdfStatus">👁</div>
+          </div>
         </div>
 
         <!-- 资产子表（卡片样式） -->
@@ -825,6 +845,55 @@
     s1Cycle();
   }
 
+  /* ===== 场景二缩略图/PDF 状态辅助 ===== */
+  function s2SetThumbs(state) {
+    var ovl1 = document.getElementById('s2Ovl1');
+    var ovl2 = document.getElementById('s2Ovl2');
+    var tag2 = document.getElementById('s2Tag2');
+    [ovl1, ovl2].forEach(function(o){ o.className='overlay'; o.innerHTML=''; });
+    if (tag2) tag2.className = 'corner-tag';
+    if (state === 'parsing') {
+      if (ovl1) { ovl1.className='overlay dark'; ovl1.innerHTML='<div class="spinner"></div><span>识别中</span>'; }
+      if (ovl2) { ovl2.className='overlay dark'; ovl2.innerHTML='<div class="spinner"></div><span>识别中</span>'; }
+    } else if (state === 'ok') {
+      if (tag2) tag2.className = 'corner-tag ok';
+    } else if (state === 'err') {
+      if (ovl1) { ovl1.className='overlay fail'; ovl1.innerHTML='<span style="font-size:10px;">× 识别失败</span>'; }
+      if (ovl2) { ovl2.className='overlay fail'; ovl2.innerHTML='<span style="font-size:10px;">× 图片模糊</span>'; }
+      if (tag2) tag2.className = 'corner-tag fail';
+    }
+  }
+
+  function s2SetPdfStatus(state) {
+    var pdf = document.getElementById('s2PdfItem');
+    var badge = document.getElementById('s2PdfBadge');
+    var status = document.getElementById('s2PdfStatus');
+    if (!pdf || !status) return;
+    pdf.className = 'att-file';
+    if (badge) badge.textContent = '';
+    status.textContent = '👁';
+    status.style.fontSize = '14px';
+    status.style.fontWeight = '';
+    if (state === 'parsing') {
+      pdf.className = 'att-file parsing';
+      status.textContent = '';
+      status.style.fontSize = '0';
+    } else if (state === 'ok') {
+      pdf.className = 'att-file ok';
+      if (badge) badge.textContent = '\u2713';
+      status.textContent = '\u2713';
+    } else if (state === 'err') {
+      pdf.className = 'att-file err';
+      if (badge) badge.textContent = '\u2717';
+      status.textContent = '\u2717';
+    }
+  }
+
+  function s2ResetAttach() {
+    s2SetThumbs('default');
+    s2SetPdfStatus('default');
+  }
+
   /* ===== 场景二：Sheet 处理流程 ===== */
   var s2SheetOpen = false;
   var s2SheetTimer = null;
@@ -832,6 +901,8 @@
   function s2Trigger(type) {
     if (s2SheetOpen) return;
     s2SheetOpen = true;
+    s2SetThumbs('parsing');
+    s2SetPdfStatus('parsing');
     document.getElementById('s2Sheet').classList.add('show');
     document.getElementById('s2ErrFoot').classList.remove('show');
 
@@ -856,6 +927,7 @@
           items[1].classList.add('fail');
           updateSheetTitle('\u5904\u7406\u5931\u8d25');
           s2ShowErrFoot('\u53d1\u7968\u8bc6\u522b\u9a8c\u771f\u5931\u8d25\uff1a\u56fe\u7247\u6a21\u7cca\uff0c\u65e0\u6cd5\u8bc6\u522b');
+          s2SetThumbs('err'); s2SetPdfStatus('err');
           return;
         }
         items[1].querySelector('.right-side').innerHTML = '<span class="st-text ok">\u5df2\u5b8c\u6210</span><div class="step-check">\u2713</div>';
@@ -868,6 +940,7 @@
             items[2].classList.add('fail');
             updateSheetTitle('\u6821\u9a8c\u672a\u901a\u8fc7');
             s2ShowErrFoot('\u5408\u89c4\u6027\u6821\u9a8c\u5931\u8d25\uff1a\u53d1\u7968\u4fe1\u606f\u4e0e\u7a0e\u52a1\u7cfb\u7edf\u4e0d\u4e00\u81f4');
+            s2SetThumbs('err'); s2SetPdfStatus('err');
             return;
           }
           items[2].querySelector('.right-side').innerHTML = '<span class="st-text ok">\u5df2\u5b8c\u6210</span><div class="step-check">\u2713</div>';
@@ -875,6 +948,7 @@
           // \u6210\u529f \u2192 \u5173\u95ed\u5e76\u65b0\u589e\u8d44\u4ea7\u5361\u7247
           setTimeout(function() {
             s2CloseSheet();
+            s2SetThumbs('ok'); s2SetPdfStatus('ok');
             var card = '<div class="asset-card ac-card-item">' +
               '<button class="ac-del" onclick="s2DeleteCard(this)">\u00d7</button>' +
               '<div class="ac-body">' +
@@ -919,6 +993,7 @@
   }
   function s2Reset() {
     s2CloseSheet();
+    s2ResetAttach();
     document.getElementById('s2CardWrap').innerHTML =
       '<div class="asset-card"><div class="ac-empty">\u6682\u65e0\u53d1\u7968\u6570\u636e\uff0c\u70b9\u51fb\u201c\u6dfb\u52a0\u201d\u4e0a\u4f20</div></div>';
     document.getElementById('s2ParentNote').style.display = 'none';
