@@ -156,6 +156,16 @@
   .s1-file-item .status-tag.ok { background: #f0f9eb; color: #67c23a; }
   .s1-file-item .status-tag.dup { background: #fdf6ec; color: #e6a23c; }
   .s1-file-item .status-tag.err { background: #fef0f0; color: #f56c6c; }
+  /* PDF 识别中 */
+  .s1-file-item.parsing { border-color: #f5dab1; background: #fffbe6; }
+  .s1-file-item.parsing .del { display: none; }
+  .s1-file-item .parse-spin {
+    display: none; width: 14px; height: 14px; border: 2px solid #f0c78e;
+    border-top-color: #e6a23c; border-radius: 50%;
+    animation: spin .8s linear infinite; flex-shrink: 0;
+  }
+  .s1-file-item.parsing .parse-spin { display: inline-block; }
+  .s1-file-item.parsing .name { color: #b88230; }
 
   .s1-thumb-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;
@@ -597,6 +607,7 @@
                   <div class="s1-file-item" id="s1File0" data-type="pdf">
                     <span class="icon">📁</span>
                     <span class="name">testtest.pdf</span>
+                    <span class="parse-spin"></span>
                     <span class="del" onclick="s1DeleteFile(event, 's1File0')">✕</span>
                   </div>
                 </div>
@@ -682,6 +693,7 @@
                   <div class="s1-file-item" id="s2File0" data-type="pdf">
                     <span class="icon">📁</span>
                     <span class="name">testtest.pdf</span>
+                    <span class="parse-spin"></span>
                     <span class="del" onclick="s2DeleteFile(event, 's2File0')">✕</span>
                   </div>
                 </div>
@@ -960,11 +972,13 @@
     s1GetFileItems().forEach(function(item) {
       var tag = item.querySelector('.status-tag');
       if (tag) tag.remove();
+      item.classList.remove('parsing');
     });
   }
 
   function s1SetFileStatus(type) {
     s1GetFileItems().forEach(function(item) {
+      item.classList.remove('parsing');
       var old = item.querySelector('.status-tag');
       if (old) old.remove();
       var tag = document.createElement('span');
@@ -973,6 +987,12 @@
       else if (type === 'dup') tag.textContent = '已重复';
       else if (type === 'err') tag.textContent = '识别失败';
       item.appendChild(tag);
+    });
+  }
+
+  function s1SetFileParsing() {
+    s1GetFileItems().forEach(function(item) {
+      item.classList.add('parsing');
     });
   }
 
@@ -1057,6 +1077,7 @@
   function s1Run(type) {
     s1Reset();
     s1SetThumbUploading();
+    s1SetFileParsing();
     setTimeout(function() {
       s1SetThumbParsing();
       setTimeout(function() {
@@ -1095,11 +1116,13 @@
     s2GetFileItems().forEach(function(item) {
       var tag = item.querySelector('.status-tag');
       if (tag) tag.remove();
+      item.classList.remove('parsing');
     });
   }
 
   function s2SetFileStatus(type) {
     s2GetFileItems().forEach(function(item) {
+      item.classList.remove('parsing');
       var old = item.querySelector('.status-tag');
       if (old) old.remove();
       var tag = document.createElement('span');
@@ -1108,6 +1131,12 @@
       else if (type === 'dup') tag.textContent = '已重复';
       else if (type === 'err') tag.textContent = '识别失败';
       item.appendChild(tag);
+    });
+  }
+
+  function s2SetFileParsing() {
+    s2GetFileItems().forEach(function(item) {
+      item.classList.add('parsing');
     });
   }
 
