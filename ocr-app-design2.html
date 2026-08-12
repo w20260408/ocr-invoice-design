@@ -142,7 +142,38 @@
     background: #f5f7fa; color: #909399;
     display: flex; align-items: center; justify-content: center;
     font-size: 14px; flex-shrink: 0;
+    transition: background .2s, color .2s;
   }
+  /* PDF 状态：识别中 */
+  .att-file.parsing .file-view {
+    background: #fdf6ec; color: #e6a23c; font-size: 0;
+  }
+  .att-file.parsing .file-view::after {
+    content: '';
+    width: 12px; height: 12px; border: 2px solid #f0c78e;
+    border-top-color: #e6a23c; border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  /* PDF 状态：成功 */
+  .att-file.ok .file-view {
+    background: #f0f9eb; color: #67c23a; font-size: 14px; font-weight: 700;
+  }
+  /* PDF 状态：失败 */
+  .att-file.err .file-view {
+    background: #fef0f0; color: #f56c6c; font-size: 14px; font-weight: 700;
+  }
+  /* PDF 图标角标 */
+  .att-file .file-icon-corner {
+    position: absolute; top: -3px; right: -3px; width: 18px; height: 18px;
+    border-radius: 50%; display: none; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #fff; z-index: 2;
+    box-shadow: 0 1px 3px rgba(0,0,0,.15);
+  }
+  .att-file.ok .file-icon-corner { display: flex; background: #67c23a; }
+  .att-file.err .file-icon-corner { display: flex; background: #f56c6c; }
+  /* PDF 图标遮罩（识别中/失败时暗化） */
+  .att-file.parsing .file-icon,
+  .att-file.err .file-icon { opacity: .6; }
 
   .att-item .overlay {
     position: absolute; inset: 0; display: flex; flex-direction: column;
@@ -482,9 +513,12 @@
           </div>
           <!-- PDF 文件项 -->
           <div class="att-file" id="s1PdfItem">
-            <div class="file-icon">P</div>
+            <div class="file-icon">
+              P
+              <div class="file-icon-corner" id="s1PdfBadge"></div>
+            </div>
             <div class="file-name">dzfp_2611700000073168...</div>
-            <div class="file-view">👁</div>
+            <div class="file-view" id="s1PdfStatus">👁</div>
           </div>
         </div>
 
@@ -492,12 +526,6 @@
         <div class="annotation parent" id="s1Summary" style="display:none;">
           📢 父页面 DOM：插件 postMessage → 更新字段 / 缩略图状态
         </div>
-
-        <!-- 插件 iframe 极简浮层 -->
-        <div class="mini-float show" id="s1Float">
-          <div class="mf-spinner"></div><span>AI 识别中...</span>
-        </div>
-        <div class="annotation iframe">🤖 插件 iframe 弹出的极简浮层（右下角，不挡操作）</div>
       </div>
     </div>
     <div class="btn-row">
@@ -723,7 +751,6 @@
     var ovl1 = document.getElementById('s1Ovl1');
     var ovl2 = document.getElementById('s1Ovl2');
     var tag2 = document.getElementById('s1Tag2');
-    var flt  = document.getElementById('s1Float');
     var sum  = document.getElementById('s1Summary');
     var no   = document.getElementById('s1No');
     var amt  = document.getElementById('s1Amt');
@@ -732,38 +759,63 @@
 
     // reset
     [ovl1,ovl2].forEach(function(o){ o.className='overlay'; o.innerHTML=''; });
-    tag2.className='corner-tag';
-    flt.className='mini-float'; sum.style.display='none';
+    tag2.className='corner-tag'; sum.style.display='none';
     [no,amt,seller,date].forEach(function(e){ e.className='form-input'; e.value=''; e.placeholder='识别后自动填入'; });
+    s1SetPdfStatus('default');
 
     if (s1State === 0) {
       // 全部识别中
       ovl1.className='overlay dark'; ovl1.innerHTML='<div class="spinner"></div><span>识别中</span>';
       ovl2.className='overlay dark'; ovl2.innerHTML='<div class="spinner"></div><span>识别中</span>';
-      flt.className='mini-float show';
+      s1SetPdfStatus('parsing');
     } else if (s1State === 1) {
       // 全部成功
       ovl1.innerHTML=''; ovl2.innerHTML='';
       tag2.className='corner-tag ok';
-      flt.className='mini-float';
       no.className='form-input filled'; no.value='20260810001234';
       amt.className='form-input filled'; amt.value='¥ 1,280.00';
       seller.className='form-input filled'; seller.value='星辰信息技术有限公司';
       date.className='form-input filled'; date.value='2026-08-08';
+      s1SetPdfStatus('ok');
     } else if (s1State === 2) {
       // 混合：1成功 1模糊失败
       ovl1.innerHTML='';
       ovl2.className='overlay fail'; ovl2.innerHTML='<span style="font-size:10px;">× 图片模糊</span>';
       tag2.className='corner-tag ok';
-      flt.className='mini-float show';
       sum.style.display='flex';
+      s1SetPdfStatus('ok');
     } else {
       // 全部识别失败
       ovl1.className='overlay fail'; ovl1.innerHTML='<span style="font-size:10px;">× 识别失败</span>';
       ovl2.className='overlay fail'; ovl2.innerHTML='<span style="font-size:10px;">× 图片模糊</span>';
       tag2.className='corner-tag fail';
-      flt.className='mini-float';
       sum.style.display='flex';
+      s1SetPdfStatus('err');
+    }
+  }
+
+  function s1SetPdfStatus(state) {
+    var pdf = document.getElementById('s1PdfItem');
+    var badge = document.getElementById('s1PdfBadge');
+    var status = document.getElementById('s1PdfStatus');
+    if (!pdf || !status) return;
+    pdf.className = 'att-file';
+    if (badge) badge.textContent = '';
+    status.textContent = '👁';
+    status.style.fontSize = '14px';
+    status.style.fontWeight = '';
+    if (state === 'parsing') {
+      pdf.className = 'att-file parsing';
+      status.textContent = '';
+      status.style.fontSize = '0';
+    } else if (state === 'ok') {
+      pdf.className = 'att-file ok';
+      if (badge) badge.textContent = '\u2713';
+      status.textContent = '\u2713';
+    } else if (state === 'err') {
+      pdf.className = 'att-file err';
+      if (badge) badge.textContent = '\u2717';
+      status.textContent = '\u2717';
     }
   }
 
