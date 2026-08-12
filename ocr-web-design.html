@@ -618,13 +618,6 @@
             </div>
           </div>
 
-          <!-- AI 浮层（右下角） -->
-          <div class="s1-mini-float" id="s1Float">
-            <div class="mf-spinner" id="s1FloatSpinner"></div>
-            <span id="s1FloatText">AI 识别中...</span>
-          </div>
-
-
         </div>
       </div>
     </div>
@@ -938,7 +931,6 @@
     // 已废弃：顶部黄条已移除，改用右下角浮层 s1HideFloat()
   }
   function s1Reset() {
-    s1HideFloat();
     s1ResetThumbs();
     s1ResetFiles();
     S1_FIELDS.forEach(function(k) {
@@ -1061,84 +1053,23 @@
     }
   }
 
-  /* 浮层 */
-  function s1SetFloat(cls, iconHtml, text) {
-    var flt = document.getElementById('s1Float');
-    var sp = document.getElementById('s1FloatSpinner');
-    var tx = document.getElementById('s1FloatText');
-    if (!flt || !tx) return;
-    // 重置
-    flt.className = 's1-mini-float show';
-    if (sp) sp.style.display = 'none';
-    if (cls) flt.classList.add(cls);
-    if (iconHtml) {
-      if (sp) { sp.style.display = 'block'; sp.className = 'mf-spinner'; sp.innerHTML = iconHtml; }
-      // 如果 icon 不是 spinner，需要特殊处理
-      if (iconHtml.indexOf('spinner') === -1) {
-        if (sp) { sp.className = 'mf-icon'; sp.style.display = 'inline'; }
-      }
-    }
-    tx.textContent = text || '';
-  }
-  function s1ShowFloat() {
-    var flt = document.getElementById('s1Float');
-    if (flt) flt.className = 's1-mini-float show';
-  }
-  function s1HideFloat() {
-    var flt = document.getElementById('s1Float');
-    if (flt) {
-      flt.classList.remove('show');
-      flt.className = 's1-mini-float';
-    }
-  }
-  function s1ShowFloatWithSpinner(text) {
-    var flt = document.getElementById('s1Float');
-    var sp = document.getElementById('s1FloatSpinner');
-    var tx = document.getElementById('s1FloatText');
-    if (!flt || !tx) return;
-    flt.className = 's1-mini-float show';
-    if (sp) { sp.className = 'mf-spinner'; sp.style.display = 'block'; sp.innerHTML = ''; }
-    tx.textContent = text || 'AI 识别中...';
-  }
-
-  function s1Upload() {
-    s1Run('success');
-  }
-
+  function s1Upload() { s1Run('success'); }
   function s1Run(type) {
     s1Reset();
-    // 阶段 1：上传中 → 缩略图更新时不显示浮层
     s1SetThumbUploading();
-
     setTimeout(function() {
-      // 阶段 2：识别中 → 显示浮层
       s1SetThumbParsing();
-      s1ShowFloatWithSpinner('AI 识别中...');
-
       setTimeout(function() {
         if (type === 'success') {
-          s1SetThumbSuccess();
-          s1SetFileStatus('ok');
+          s1SetThumbSuccess(); s1SetFileStatus('ok');
           S1_FIELDS.forEach(function(k) {
             var el = document.getElementById('s1-' + k);
             if (el && MOCK[k]) { el.value = MOCK[k]; el.className = ''; }
           });
-          // 闪现「识别完成」
-          var flt = document.getElementById('s1Float');
-          if (flt) { flt.className = 's1-mini-float success show'; }
-          var sp = document.getElementById('s1FloatSpinner');
-          var tx = document.getElementById('s1FloatText');
-          if (sp) { sp.className = 'mf-icon'; sp.style.display = 'inline'; sp.innerHTML = '\u2713'; }
-          if (tx) tx.textContent = '识别完成';
-          setTimeout(s1HideFloat, 1500);
         } else if (type === 'duplicate') {
-          s1HideFloat();
-          s1SetThumbDuplicate();
-          s1SetFileStatus('dup');
+          s1SetThumbDuplicate(); s1SetFileStatus('dup');
         } else {
-          s1HideFloat();
-          s1SetThumbError();
-          s1SetFileStatus('err');
+          s1SetThumbError(); s1SetFileStatus('err');
         }
       }, 1500);
     }, 1000);
