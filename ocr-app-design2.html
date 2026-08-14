@@ -1130,12 +1130,14 @@
     }
     var remark = document.getElementById('ivRemark');
     if (remark) {
+      var seq = (idx >= 0 ? idx : 0) + 1;
+      var no = String(seq).padStart(3, '0');
       if (state === 'err') {
-        remark.innerHTML = '<b>备注：</b>当前图片文字不清晰，仅识别到部分信息，建议重新上传高清原图后再次识别。';
+        remark.innerHTML = '<b>备注：</b>图片' + no + '，识别结果：失败。原因：图片文字不清晰，仅识别到部分信息，建议重新上传高清原图后再次识别。';
       } else if (state === 'dup') {
-        remark.innerHTML = '<b>备注：</b>系统检测到该发票已重复提交，重复发票将不会被处理，请确认是否需要继续。';
+        remark.innerHTML = '<b>备注：</b>图片' + no + '，识别结果：重复。原因：该发票已存在于系统中（发票号 ' + (window._ivIds[0] === itemId ? '20260810001234' : '67163448') + '），重复提交将不会被处理。';
       } else {
-        remark.innerHTML = '<b>备注：</b>识别结果已回填至工单字段，请核对金额、发票号码及销售方信息。';
+        remark.innerHTML = '<b>备注：</b>图片' + no + '，识别结果：成功。已自动回填至工单字段，请核对金额、发票号码及销售方信息。';
       }
     }
   }
