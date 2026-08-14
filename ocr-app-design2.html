@@ -212,19 +212,95 @@
   }
   .iv-image-area {
     flex: 1; display: flex; align-items: center; justify-content: center;
-    padding: 20px; min-height: 0;
+    padding: 50px 70px 12px; min-height: 0; position: relative;
   }
-  .iv-image-area .iv-img {
-    max-width: 100%; max-height: 100%; aspect-ratio: 4/3;
-    border-radius: 8px; overflow: hidden; position: relative;
+  .iv-image-wrap {
+    max-width: 100%; max-height: 100%; position: relative;
+    transition: transform .25s ease;
+  }
+  .iv-image-wrap.inv-blur { filter: blur(2.5px) brightness(.75); }
+  .iv-image-wrap.iv-rotated { transform: rotate(90deg); }
+  /* 模拟发票 */
+  .inv-mock {
+    width: 520px; max-width: 100%; background: #fff; color: #333;
+    padding: 16px 18px; border-radius: 4px; font-size: 11px;
     box-shadow: 0 8px 32px rgba(0,0,0,.4);
+    font-family: -apple-system, "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    position: relative;
   }
-  .iv-image-area .iv-img .bg {
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, #a8c0d6 0%, #6b8cae 100%);
+  .inv-header { display: flex; align-items: flex-start; margin-bottom: 8px; }
+  .inv-qr {
+    width: 50px; height: 50px; flex-shrink: 0; margin-right: 10px;
+    background:
+      linear-gradient(#333 25%, transparent 25%) 0 0/5px 5px,
+      linear-gradient(90deg, #333 25%, transparent 25%) 0 0/5px 5px,
+      linear-gradient(#333 25%, transparent 25%) 2.5px 2.5px/5px 5px,
+      linear-gradient(90deg, #333 25%, transparent 25%) 2.5px 2.5px/5px 5px;
+    background-color: #fff;
+    border: 1px solid #999;
   }
-  .iv-image-area .iv-img .bg.b2 { background: linear-gradient(135deg, #f5b88c 0%, #c9824f 100%); }
-  .iv-image-area .iv-img .bg.b3 { background: linear-gradient(135deg, #b8c4d6 0%, #7585a0 100%); }
+  .inv-title-block { flex: 1; text-align: center; }
+  .inv-title { font-size: 16px; font-weight: 600; color: #b00; }
+  .inv-meta { display: flex; flex-direction: column; gap: 2px; font-size: 10px; text-align: right; min-width: 130px; }
+  .inv-divider { border-top: 1.5px solid #b00; margin: 8px 0 6px; }
+  .inv-parties { display: flex; gap: 16px; font-size: 10px; margin-bottom: 8px; line-height: 1.7; }
+  .inv-party { flex: 1; }
+  .inv-party label { color: #999; margin-right: 4px; }
+  .inv-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 8px; }
+  .inv-table th, .inv-table td { border: 1px solid #888; padding: 4px 5px; text-align: center; }
+  .inv-table th { background: #f5f5f5; font-weight: 500; }
+  .inv-table td.left { text-align: left; }
+  .inv-total {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; font-size: 11px; border-top: 1px solid #888;
+    margin-bottom: 10px;
+  }
+  .inv-total-num { color: #b00; font-weight: 600; font-size: 14px; }
+  .inv-footer { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #666; }
+  .inv-stamp {
+    width: 64px; height: 64px; border: 2px solid #d33; border-radius: 50%;
+    color: #d33; font-size: 8px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; transform: rotate(-8deg);
+    opacity: .85; line-height: 1.2;
+  }
+  /* 工具栏 */
+  .iv-toolbar {
+    display: flex; align-items: center; justify-content: center; gap: 28px;
+    padding: 14px 16px; background: rgba(0,0,0,.4);
+    flex-shrink: 0;
+  }
+  .iv-tool-btn {
+    width: 40px; height: 40px; border-radius: 50%; border: none;
+    background: transparent; color: #fff; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s;
+  }
+  .iv-tool-btn:hover { background: rgba(255,255,255,.15); }
+  .iv-tool-btn svg { width: 20px; height: 20px; fill: #fff; }
+  /* 左右翻页 */
+  .iv-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 36px; height: 64px; border: none; cursor: pointer;
+    background: rgba(255,255,255,.1); color: #fff; font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s; z-index: 2;
+  }
+  .iv-nav.prev { left: 12px; border-radius: 0 8px 8px 0; }
+  .iv-nav.next { right: 12px; border-radius: 8px 0 0 8px; }
+  .iv-nav:hover { background: rgba(255,255,255,.25); }
+  /* 失败原因红字 */
+  .iv-fail-banner {
+    background: rgba(245,108,108,.96); color: #fff; padding: 10px 16px;
+    margin: 0 70px 12px; border-radius: 6px; font-size: 13px;
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .iv-fail-banner b { font-weight: 600; }
+  .iv-dup-banner {
+    background: rgba(230,162,60,.96); color: #fff; padding: 10px 16px;
+    margin: 0 70px 12px; border-radius: 6px; font-size: 13px;
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
   .iv-result {
     flex-shrink: 0; background: #fff; border-radius: 16px 16px 0 0;
     padding: 16px 18px 20px; max-height: 50%; overflow-y: auto;
@@ -834,10 +910,26 @@
 <!-- 原图查看器（全屏） -->
 <div class="img-viewer" id="imgViewer">
   <button class="iv-close" onclick="closeImgViewer()">✕</button>
-  <div class="iv-image-area">
-    <div class="iv-img" id="ivImg"></div>
+  <button class="iv-nav prev" onclick="ivNavigate(-1)">‹</button>
+  <button class="iv-nav next" onclick="ivNavigate(1)">›</button>
+  <div class="iv-image-area" id="ivImageArea">
+    <div class="iv-image-wrap" id="ivImageWrap"></div>
   </div>
-  <div class="iv-result" id="ivResult"></div>
+  <div id="ivBanner" style="display:none;"></div>
+  <div class="iv-toolbar">
+    <button class="iv-tool-btn" onclick="ivZoom(1)" title="放大">
+      <svg viewBox="0 0 24 24"><path d="M9 2a7 7 0 015.5 11.3l4.9 4.9-1.4 1.4-4.9-4.9A7 7 0 119 2zm0 2a5 5 0 100 10 5 5 0 000-10zm0 2v2H7v2h2v2h2v-2h2V8h-2V6H9z"/></svg>
+    </button>
+    <button class="iv-tool-btn" onclick="ivZoom(-1)" title="缩小">
+      <svg viewBox="0 0 24 24"><path d="M9 2a7 7 0 015.5 11.3l4.9 4.9-1.4 1.4-4.9-4.9A7 7 0 119 2zm0 2a5 5 0 100 10 5 5 0 000-10zm-2 4v2h4V8H7z"/></svg>
+    </button>
+    <button class="iv-tool-btn" onclick="ivRotate()" title="旋转">
+      <svg viewBox="0 0 24 24"><path d="M12 4V1L7 6l5 5V7a5 5 0 11-5 5H5a7 7 0 107-8z"/></svg>
+    </button>
+    <button class="iv-tool-btn" onclick="ivDownload()" title="下载">
+      <svg viewBox="0 0 24 24"><path d="M11 2h2v9.6l3.3-3.3 1.4 1.4L12 15.4 6.3 9.7l1.4-1.4 3.3 3.3V2zm-8 16h18v2H3v-2z"/></svg>
+    </button>
+  </div>
 </div>
 
 <script>
@@ -924,70 +1016,163 @@
   }
 
   /* ===== 原图查看器 ===== */
+  var ivScale = 1;
+  var ivRotated = false;
+
+  function buildInvoiceMock(idx, blurred) {
+    var variants = [
+      {
+        no: '20260810001234',
+        code: '031002600511',
+        date: '2026-08-08',
+        seller: '星辰信息技术有限公司',
+        sellerId: '91310106MA1FV5NA99',
+        amount: '85.08',
+        item: '*运输服务*客运服务费',
+        sellerName: '北京星辰信息技术有限公司',
+        sellerNameId: '91110106MA04CC7Y15',
+      },
+      {
+        no: '67163448',
+        code: '031002100511',
+        date: '2022-10-12',
+        seller: '海港云联技术有限公司',
+        sellerId: '91310106MA1ABC123X',
+        amount: '1,280.00',
+        item: '*信息技术服务*软件开发费',
+        sellerName: '北京帆引未来科技有限公司',
+        sellerNameId: '91110106MA04CC7Y15',
+      },
+    ];
+    var v = variants[idx % variants.length];
+    return '<div class="inv-mock">' +
+      '<div class="inv-header">' +
+        '<div class="inv-qr"></div>' +
+        '<div class="inv-title-block"><div class="inv-title">上海增值税电子普通发票</div></div>' +
+        '<div class="inv-meta">' +
+          '<div>发票代码：' + v.code + '</div>' +
+          '<div>发票号码：' + v.no + '</div>' +
+          '<div>开票日期：' + v.date + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="inv-divider"></div>' +
+      '<div class="inv-parties">' +
+        '<div class="inv-party">' +
+          '<div><label>购买方</label>' + v.sellerName + '</div>' +
+          '<div><label>纳税人识别号</label>' + v.sellerNameId + '</div>' +
+        '</div>' +
+        '<div class="inv-party">' +
+          '<div><label>销售方</label>' + v.seller + '</div>' +
+          '<div><label>纳税人识别号</label>' + v.sellerId + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<table class="inv-table"><thead><tr>' +
+        '<th>项目名称</th><th>规格型号</th><th>单位</th><th>数量</th>' +
+        '<th>单价</th><th>金额</th><th>税率/征收率</th><th>税额</th>' +
+      '</tr></thead><tbody><tr>' +
+        '<td class="left">' + v.item + '</td><td>无</td><td>次</td><td>1</td>' +
+        '<td>' + v.amount + '</td><td>' + v.amount + '</td><td>免税***</td><td>***</td>' +
+      '</tr></tbody></table>' +
+      '<div class="inv-total">' +
+        '<span>价税合计（大写） 捌拾伍元零捌分</span>' +
+        '<span class="inv-total-num">¥' + v.amount + '</span>' +
+      '</div>' +
+      '<div class="inv-footer">' +
+        '<span>收款人：黄智慧</span><span>复核：张振振</span><span>开票人：宋岱宗</span>' +
+        '<div class="inv-stamp">发票<br>专用章</div>' +
+      '</div>' +
+    '</div>';
+  }
+
   function openImgViewer(itemId) {
     var item = document.getElementById(itemId);
     if (!item) return;
     var state = item.dataset.state || 'ok';
-    // 正在识别中时不让打开
-    if (state === 'parsing' || state === 'uploading') {
-      return;
+    if (state === 'parsing' || state === 'uploading') return;
+    // 找到该 item 在所有可查看项中的索引（仅同场景）
+    var ids = [];
+    var parentGrid = item.closest('.att-grid') || item.closest('.att-section');
+    if (parentGrid) {
+      var all = parentGrid.querySelectorAll('[data-state]');
+      all.forEach(function(el) { if (el.id) ids.push(el.id); });
+    } else {
+      ids = [itemId];
     }
-    // 复制缩略图背景到查看器
-    var ivImg = document.getElementById('ivImg');
-    ivImg.innerHTML = '';
-    var bg = document.createElement('div');
-    var bgClass = item.dataset.bg || 'b0';
-    bg.className = 'bg ' + (bgClass === 'b0' ? '' : bgClass);
-    ivImg.appendChild(bg);
-    // 渲染详情
-    renderViewerResult(itemId, state);
+    ivScale = 1;
+    ivRotated = false;
+    window._ivIds = ids;
+    window._ivItemId = itemId;
+    renderIvContent(itemId, state);
     document.getElementById('imgViewer').classList.add('show');
+  }
+
+  function renderIvContent(itemId, state) {
+    var idx = (window._ivIds || []).indexOf(itemId);
+    var wrap = document.getElementById('ivImageWrap');
+    var blurred = (state === 'err');
+    wrap.className = 'iv-image-wrap' + (blurred ? ' inv-blur' : '') + (ivRotated ? ' iv-rotated' : '');
+    wrap.style.transform = 'scale(' + ivScale + ')';
+    wrap.innerHTML = buildInvoiceMock(idx >= 0 ? idx : 0, blurred);
+    // 失败/重复横条
+    var banner = document.getElementById('ivBanner');
+    if (state === 'err') {
+      banner.outerHTML = '<div class="iv-fail-banner" id="ivBanner"><b>识别失败：</b>图片001，文字不清晰，图片信息仅识别一行数据，请重新上传清晰的发票图片</div>';
+    } else if (state === 'dup') {
+      banner.outerHTML = '<div class="iv-dup-banner" id="ivBanner"><b>发票重复：</b>该发票已存在于系统中（发票号 ' + (window._ivIds[0] === itemId ? '20260810001234' : '67163448') + '），重复提交将不会被处理</div>';
+    } else {
+      banner.outerHTML = '<div id="ivBanner" style="display:none;"></div>';
+    }
   }
 
   function closeImgViewer() {
     document.getElementById('imgViewer').classList.remove('show');
   }
 
-  function renderViewerResult(itemId, state) {
-    var result = document.getElementById('ivResult');
-    var head = '';
-    var body = '';
-    if (state === 'ok') {
-      head = '<div class="iv-result-head">' +
-               '<span class="iv-result-status ok">✓ 识别成功</span>' +
-               '<span class="iv-filename">dzfp_2611700000073168.pdf</span>' +
-             '</div>';
-      body = '<div class="iv-fields">' +
-               '<div class="iv-field"><label>发票号码</label><span>20260810001234</span></div>' +
-               '<div class="iv-field"><label>开票时间</label><span>2026-08-08</span></div>' +
-               '<div class="iv-field full"><label>销售方</label><span>星辰信息技术有限公司</span></div>' +
-               '<div class="iv-field"><label>金额</label><span>¥ 1,280.00</span></div>' +
-               '<div class="iv-field"><label>税额</label><span>¥ 73.63</span></div>' +
-             '</div>' +
-             '<div class="iv-actions">' +
-               '<button class="iv-retry" onclick="closeImgViewer()">确定</button>' +
-             '</div>';
-    } else if (state === 'err') {
-      head = '<div class="iv-result-head">' +
-               '<span class="iv-result-status err">✕ 识别失败</span>' +
-               '<span class="iv-filename">invoice_001.jpg</span>' +
-             '</div>';
-      body = '<div class="iv-reason err"><b>识别失败原因：</b>图片模糊或角度倾斜，关键字段（发票号、金额）无法准确识别。建议：<br>· 重新拍摄时确保发票平整、清晰<br>· 光线充足，避免反光和阴影<br>· 包含完整的发票边框和文字</div>' +
-             '<div class="iv-actions">' +
-               '<button class="iv-retry" onclick="closeImgViewer()">重新上传</button>' +
-               '<button class="iv-cancel" onclick="closeImgViewer()">关闭</button>' +
-             '</div>';
-    } else if (state === 'dup') {
-      head = '<div class="iv-result-head">' +
-               '<span class="iv-result-status dup">⚠ 发票重复</span>' +
-               '<span class="iv-filename">dzfp_2611700000073168.pdf</span>' +
-             '</div>';
-      body = '<div class="iv-reason dup"><b>该发票已存在系统中：</b><br>· 发票号码：<b>20260810001234</b><br>· 提交人：李四<br>· 提交时间：2026-08-05 14:23<br>同一张发票不能重复提交。</div>' +
-             '<div class="iv-actions">' +
-               '<button class="iv-cancel" onclick="closeImgViewer()">我知道了</button>' +
-             '</div>';
+  function ivZoom(dir) {
+    ivScale = Math.max(0.5, Math.min(2.5, ivScale + dir * 0.2));
+    var wrap = document.getElementById('ivImageWrap');
+    if (wrap) wrap.style.transform = 'scale(' + ivScale + ')';
+  }
+
+  function ivRotate() {
+    ivRotated = !ivRotated;
+    var wrap = document.getElementById('ivImageWrap');
+    if (wrap) {
+      wrap.classList.toggle('iv-rotated', ivRotated);
+      wrap.style.transform = 'scale(' + ivScale + ')';
     }
-    result.innerHTML = head + body;
+  }
+
+  function ivDownload() {
+    var item = document.getElementById(window._ivItemId);
+    var name = (item && item.querySelector('.name')) ? item.querySelector('.name').textContent : 'invoice.png';
+    if (!name || name.trim() === '') name = 'invoice.png';
+    // 模拟下载：用 data URL 触发一个下载（实际产品中此处替换为真实文件下载链接）
+    var dataUrl = 'data:text/plain;charset=utf-8,' + encodeURIComponent('发票文件：' + name);
+    var a = document.createElement('a');
+    a.href = dataUrl; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+
+  function ivNavigate(dir) {
+    var ids = window._ivIds || [];
+    if (ids.length <= 1) return;
+    var cur = ids.indexOf(window._ivItemId);
+    var nxt = (cur + dir + ids.length) % ids.length;
+    var itemId = ids[nxt];
+    var el = document.getElementById(itemId);
+    if (!el) return;
+    var state = el.dataset.state || 'ok';
+    if (state === 'parsing' || state === 'uploading') {
+      // 跳过识别中的
+      window._ivItemId = ids[(nxt + dir + ids.length) % ids.length];
+      ivNavigate(dir);
+      return;
+    }
+    window._ivItemId = itemId;
+    ivScale = 1;
+    ivRotated = false;
+    renderIvContent(itemId, state);
   }
 
   function setItemState(id, state) {
