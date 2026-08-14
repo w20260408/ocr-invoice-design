@@ -197,26 +197,34 @@
   .corner-tag.ok { background: #67c23a; display: flex; }
   .corner-tag.fail { background: #f56c6c; display: flex; }
 
-  /* ===== 原图查看器（限定在手机框内） ===== */
+  /* ===== 原图查看器（限定在手机框内，iOS 照片预览风格） ===== */
   .img-viewer {
-    position: absolute; inset: 0; background: rgba(0,0,0,.85); z-index: 100;
-    display: none; flex-direction: column;
+    position: absolute; inset: 0; background: #8e8e8e; z-index: 100;
+    display: none; flex-direction: column; align-items: center;
   }
   .img-viewer.show { display: flex; animation: fadeIn .25s ease; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  .iv-close {
-    position: absolute; top: 16px; right: 16px; z-index: 2;
-    width: 36px; height: 36px; border-radius: 50%;
-    background: rgba(255,255,255,.15); color: #fff; border: none;
-    font-size: 18px; cursor: pointer; backdrop-filter: blur(8px);
+  .iv-header {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+    height: 64px; background: #007aff;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 8px 12px 10px;
+  }
+  .iv-back {
+    background: none; border: none; color: #fff; font-size: 32px;
+    line-height: 1; padding: 0 4px; cursor: pointer;
+  }
+  .iv-delete {
+    background: none; border: none; color: #fff; font-size: 15px;
+    cursor: pointer; padding: 4px 2px;
   }
   .iv-image-area {
     flex: 1; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    padding: 50px 70px 20px; min-height: 0; position: relative;
+    width: 100%; padding: 74px 20px 14px; min-height: 0;
   }
   .iv-image-wrap {
-    max-width: 100%; max-height: 100%; position: relative;
+    max-width: 100%; max-height: 420px; position: relative;
     transition: transform .25s ease;
   }
   .iv-image-wrap.inv-blur { filter: blur(2.5px) brightness(.75); }
@@ -225,7 +233,6 @@
   .inv-mock {
     width: 520px; max-width: 100%; background: #fff; color: #333;
     padding: 16px 18px; border-radius: 4px; font-size: 11px;
-    box-shadow: 0 8px 32px rgba(0,0,0,.4);
     font-family: -apple-system, "Helvetica Neue", "Microsoft YaHei", sans-serif;
     position: relative;
   }
@@ -265,50 +272,24 @@
     text-align: center; transform: rotate(-8deg);
     opacity: .85; line-height: 1.2;
   }
-  /* 工具栏 */
-  .iv-toolbar {
-    display: flex; align-items: center; justify-content: center; gap: 28px;
-    padding: 14px 16px; background: rgba(0,0,0,.4);
-    flex-shrink: 0;
-  }
-  .iv-tool-btn {
-    width: 40px; height: 40px; border-radius: 50%; border: none;
-    background: transparent; color: #fff; font-size: 18px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background .2s;
-  }
-  .iv-tool-btn:hover { background: rgba(255,255,255,.15); }
-  .iv-tool-btn svg { width: 20px; height: 20px; fill: #fff; }
   /* 左右翻页 */
   .iv-nav {
     position: absolute; top: 50%; transform: translateY(-50%);
-    width: 36px; height: 64px; border: none; cursor: pointer;
-    background: rgba(255,255,255,.1); color: #fff; font-size: 20px;
+    width: 32px; height: 56px; border: none; cursor: pointer;
+    background: rgba(0,0,0,.15); color: #fff; font-size: 18px;
     display: flex; align-items: center; justify-content: center;
     transition: background .2s; z-index: 2;
   }
-  .iv-nav.prev { left: 12px; border-radius: 0 8px 8px 0; }
-  .iv-nav.next { right: 12px; border-radius: 8px 0 0 8px; }
-  .iv-nav:hover { background: rgba(255,255,255,.25); }
-  /* 失败原因红字 */
-  .iv-fail-banner {
-    background: rgba(245,108,108,.96); color: #fff; padding: 10px 16px;
-    margin: 0 70px 12px; border-radius: 6px; font-size: 13px;
-    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-  }
-  .iv-fail-banner b { font-weight: 600; }
-  .iv-dup-banner {
-    background: rgba(230,162,60,.96); color: #fff; padding: 10px 16px;
-    margin: 0 70px 12px; border-radius: 6px; font-size: 13px;
-    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-  }
+  .iv-nav.prev { left: 6px; border-radius: 0 6px 6px 0; }
+  .iv-nav.next { right: 6px; border-radius: 6px 0 0 6px; }
+  .iv-nav:hover { background: rgba(0,0,0,.3); }
   .iv-remark {
-    margin-top: 14px; font-size: 12px; color: #ccc;
-    line-height: 1.7; text-align: center; max-width: 560px;
+    padding: 0 20px 24px; font-size: 12px; color: #fff;
+    line-height: 1.7; text-align: center; max-width: 100%;
   }
-  .iv-remark b { color: #fff; font-weight: 500; }
-  .iv-remark.fail { color: #f56c6c; }
-  .iv-remark.dup { color: #e6a23c; }
+  .iv-remark b { font-weight: 500; }
+  .iv-remark.fail { color: #ffcccc; }
+  .iv-remark.dup { color: #fff3cd; }
   .iv-result {
     flex-shrink: 0; background: #fff; border-radius: 16px 16px 0 0;
     padding: 16px 18px 20px; max-height: 50%; overflow-y: auto;
@@ -915,30 +896,18 @@
 
 </div>
 
-<!-- 原图查看器（全屏） -->
+<!-- 原图查看器（iOS 照片预览风格） -->
 <div class="img-viewer" id="imgViewer">
-  <button class="iv-close" onclick="closeImgViewer()">✕</button>
+  <div class="iv-header">
+    <button class="iv-back" onclick="closeImgViewer()">‹</button>
+    <button class="iv-delete" onclick="ivDelete()">删除</button>
+  </div>
   <button class="iv-nav prev" onclick="ivNavigate(-1)">‹</button>
   <button class="iv-nav next" onclick="ivNavigate(1)">›</button>
   <div class="iv-image-area" id="ivImageArea">
     <div class="iv-image-wrap" id="ivImageWrap"></div>
-    <div class="iv-remark" id="ivRemark"><b>备注：</b>识别结果已回填至工单字段，请核对金额、发票号码及销售方信息。</div>
   </div>
-  <div id="ivBanner" style="display:none;"></div>
-  <div class="iv-toolbar">
-    <button class="iv-tool-btn" onclick="ivZoom(1)" title="放大">
-      <svg viewBox="0 0 24 24"><path d="M9 2a7 7 0 015.5 11.3l4.9 4.9-1.4 1.4-4.9-4.9A7 7 0 119 2zm0 2a5 5 0 100 10 5 5 0 000-10zm0 2v2H7v2h2v2h2v-2h2V8h-2V6H9z"/></svg>
-    </button>
-    <button class="iv-tool-btn" onclick="ivZoom(-1)" title="缩小">
-      <svg viewBox="0 0 24 24"><path d="M9 2a7 7 0 015.5 11.3l4.9 4.9-1.4 1.4-4.9-4.9A7 7 0 119 2zm0 2a5 5 0 100 10 5 5 0 000-10zm-2 4v2h4V8H7z"/></svg>
-    </button>
-    <button class="iv-tool-btn" onclick="ivRotate()" title="旋转">
-      <svg viewBox="0 0 24 24"><path d="M12 4V1L7 6l5 5V7a5 5 0 11-5 5H5a7 7 0 107-8z"/></svg>
-    </button>
-    <button class="iv-tool-btn" onclick="ivDownload()" title="下载">
-      <svg viewBox="0 0 24 24"><path d="M11 2h2v9.6l3.3-3.3 1.4 1.4L12 15.4 6.3 9.7l1.4-1.4 3.3 3.3V2zm-8 16h18v2H3v-2z"/></svg>
-    </button>
-  </div>
+  <div class="iv-remark" id="ivRemark"><b>备注：</b>识别结果已回填至工单字段，请核对金额、发票号码及销售方信息。</div>
 </div>
 
 <script>
@@ -1124,15 +1093,6 @@
     wrap.className = 'iv-image-wrap' + (blurred ? ' inv-blur' : '') + (ivRotated ? ' iv-rotated' : '');
     wrap.style.transform = 'scale(' + ivScale + ')';
     wrap.innerHTML = buildInvoiceMock(idx >= 0 ? idx : 0, blurred);
-    // 失败/重复横条
-    var banner = document.getElementById('ivBanner');
-    if (state === 'err') {
-      banner.outerHTML = '<div class="iv-fail-banner" id="ivBanner"><b>识别失败：</b>图片001，文字不清晰，图片信息仅识别一行数据，请重新上传清晰的发票图片</div>';
-    } else if (state === 'dup') {
-      banner.outerHTML = '<div class="iv-dup-banner" id="ivBanner"><b>发票重复：</b>该发票已存在于系统中（发票号 ' + (window._ivIds[0] === itemId ? '20260810001234' : '67163448') + '），重复提交将不会被处理</div>';
-    } else {
-      banner.outerHTML = '<div id="ivBanner" style="display:none;"></div>';
-    }
     var remark = document.getElementById('ivRemark');
     if (remark) {
       var seq = (idx >= 0 ? idx : 0) + 1;
@@ -1154,30 +1114,10 @@
     document.getElementById('imgViewer').classList.remove('show');
   }
 
-  function ivZoom(dir) {
-    ivScale = Math.max(0.5, Math.min(2.5, ivScale + dir * 0.2));
-    var wrap = document.getElementById('ivImageWrap');
-    if (wrap) wrap.style.transform = 'scale(' + ivScale + ')';
-  }
-
-  function ivRotate() {
-    ivRotated = !ivRotated;
-    var wrap = document.getElementById('ivImageWrap');
-    if (wrap) {
-      wrap.classList.toggle('iv-rotated', ivRotated);
-      wrap.style.transform = 'scale(' + ivScale + ')';
-    }
-  }
-
-  function ivDownload() {
+  function ivDelete() {
     var item = document.getElementById(window._ivItemId);
-    var name = (item && item.querySelector('.name')) ? item.querySelector('.name').textContent : 'invoice.png';
-    if (!name || name.trim() === '') name = 'invoice.png';
-    // 模拟下载：用 data URL 触发一个下载（实际产品中此处替换为真实文件下载链接）
-    var dataUrl = 'data:text/plain;charset=utf-8,' + encodeURIComponent('发票文件：' + name);
-    var a = document.createElement('a');
-    a.href = dataUrl; a.download = name;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    if (item) item.parentNode.removeChild(item);
+    closeImgViewer();
   }
 
   function ivNavigate(dir) {
