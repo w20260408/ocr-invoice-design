@@ -197,9 +197,9 @@
   .corner-tag.ok { background: #67c23a; display: flex; }
   .corner-tag.fail { background: #f56c6c; display: flex; }
 
-  /* ===== 原图查看器（全屏） ===== */
+  /* ===== 原图查看器（限定在手机框内） ===== */
   .img-viewer {
-    position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 100;
+    position: absolute; inset: 0; background: rgba(0,0,0,.85); z-index: 100;
     display: none; flex-direction: column;
   }
   .img-viewer.show { display: flex; animation: fadeIn .25s ease; }
@@ -1112,6 +1112,8 @@
     window._ivIds = ids;
     window._ivItemId = itemId;
     renderIvContent(itemId, state);
+    var phone = item.closest('.phone');
+    if (phone) phone.appendChild(document.getElementById('imgViewer'));
     document.getElementById('imgViewer').classList.add('show');
   }
 
