@@ -236,6 +236,76 @@
   .s1-mini-float.warning { background: rgba(230,162,60,.94); }
   .s1-mini-float.error { background: rgba(245,108,108,.94); }
 
+  /* ===== 原图查看器（Web 居中弹窗） ===== */
+  .img-viewer-mask {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100;
+    display: none; align-items: center; justify-content: center;
+  }
+  .img-viewer-mask.show { display: flex; }
+  .img-viewer {
+    width: 560px; max-width: 90vw; max-height: 90vh;
+    background: #fff; border-radius: 8px; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    animation: modalIn .25s ease;
+  }
+  .iv-head {
+    padding: 14px 18px; border-bottom: 1px solid #ebeef5;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .iv-title { font-size: 15px; font-weight: 600; color: #303133; }
+  .iv-close {
+    width: 28px; height: 28px; border-radius: 4px; border: none; background: none;
+    color: #909399; font-size: 18px; cursor: pointer;
+  }
+  .iv-close:hover { background: #f5f7fa; color: #606266; }
+  .iv-image-area {
+    background: #f5f7fa; padding: 20px; display: flex;
+    align-items: center; justify-content: center; min-height: 280px;
+  }
+  .iv-image-area .iv-img {
+    width: 320px; height: 240px; border-radius: 6px; overflow: hidden;
+    position: relative; box-shadow: 0 4px 16px rgba(0,0,0,.1);
+  }
+  .iv-image-area .iv-img .bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #a8c0d6 0%, #6b8cae 100%);
+  }
+  .iv-image-area .iv-img .bg.b2 { background: linear-gradient(135deg, #f5b88c 0%, #c9824f 100%); }
+  .iv-image-area .iv-img .bg.b3 { background: linear-gradient(135deg, #b8c4d6 0%, #7585a0 100%); }
+  .iv-result { padding: 16px 20px 20px; }
+  .iv-result-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .iv-result-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 14px; font-size: 13px; font-weight: 500;
+  }
+  .iv-result-status.ok { background: #f0f9eb; color: #67c23a; }
+  .iv-result-status.err { background: #fef0f0; color: #f56c6c; }
+  .iv-result-status.dup { background: #fdf6ec; color: #e6a23c; }
+  .iv-filename { font-size: 12px; color: #909399; }
+  .iv-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  .iv-field {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 8px 10px; background: #f5f7fa; border-radius: 6px;
+  }
+  .iv-field.full { grid-column: span 2; }
+  .iv-field label { font-size: 11px; color: #909399; }
+  .iv-field span { font-size: 13px; color: #303133; font-weight: 500; }
+  .iv-reason { padding: 10px 12px; border-radius: 6px; font-size: 13px; line-height: 1.6; }
+  .iv-reason.err { background: #fef0f0; color: #cf1322; }
+  .iv-reason.dup { background: #fdf6ec; color: #ad6800; }
+  .iv-reason b { color: #d4380d; }
+  .iv-actions { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; }
+  .iv-actions button {
+    padding: 8px 18px; border-radius: 4px; font-size: 13px;
+    cursor: pointer; border: none;
+  }
+  .iv-actions .iv-retry { background: #409eff; color: #fff; }
+  .iv-actions .iv-cancel { background: #fff; color: #606266; border: 1px solid #dcdfe6; }
+
   /* ===== Web 场景二处理中弹窗（居中对齐，Web 原生体验） ===== */
   .s2-dlg-mask {
     position: absolute; inset: 0; background: rgba(0,0,0,.45); z-index: 12;
@@ -604,7 +674,7 @@
                   <span>点此上传文件，文件15M以内</span>
                 </div>
                 <div class="s1-file-list" id="s1FileList">
-                  <div class="s1-file-item" id="s1File0" data-type="pdf">
+                  <div class="s1-file-item" id="s1File0" data-type="pdf" data-state="ok" onclick="openImgViewer('s1File0')">
                     <span class="icon">📁</span>
                     <span class="name">testtest.pdf</span>
                     <span class="parse-spin"></span>
@@ -613,13 +683,13 @@
                 </div>
               </div>
               <div class="s1-thumb-grid" id="s1ThumbGrid">
-                <div class="s1-thumb" id="s1Thumb0">
+                <div class="s1-thumb" id="s1Thumb0" data-state="ok" data-bg="b0" onclick="openImgViewer('s1Thumb0')">
                   <div class="bg"></div>
                   <div class="del" onclick="s1DeleteThumb(event, 0)">−</div>
                   <div class="corner-tag" id="s1Tag0"></div>
                   <div class="overlay" id="s1Ovl0"></div>
                 </div>
-                <div class="s1-thumb" id="s1Thumb1">
+                <div class="s1-thumb" id="s1Thumb1" data-state="ok" data-bg="b2" onclick="openImgViewer('s1Thumb1')">
                   <div class="bg b2"></div>
                   <div class="del" onclick="s1DeleteThumb(event, 1)">−</div>
                   <div class="corner-tag" id="s1Tag1"></div>
@@ -690,7 +760,7 @@
                   <span>点此上传文件，文件15M以内</span>
                 </div>
                 <div class="s1-file-list" id="s2FileList">
-                  <div class="s1-file-item" id="s2File0" data-type="pdf">
+                  <div class="s1-file-item" id="s2File0" data-type="pdf" data-state="ok" onclick="openImgViewer('s2File0')">
                     <span class="icon">📁</span>
                     <span class="name">testtest.pdf</span>
                     <span class="parse-spin"></span>
@@ -699,13 +769,13 @@
                 </div>
               </div>
               <div class="s1-thumb-grid" id="s2ThumbGrid">
-                <div class="s1-thumb" id="s2Thumb0">
+                <div class="s1-thumb" id="s2Thumb0" data-state="ok" data-bg="b0" onclick="openImgViewer('s2Thumb0')">
                   <div class="bg"></div>
                   <div class="del" onclick="s2DeleteThumb(event, 0)">−</div>
                   <div class="corner-tag" id="s2Tag0"></div>
                   <div class="overlay" id="s2Ovl0"></div>
                 </div>
-                <div class="s1-thumb" id="s2Thumb1">
+                <div class="s1-thumb" id="s2Thumb1" data-state="ok" data-bg="b2" onclick="openImgViewer('s2Thumb1')">
                   <div class="bg b2"></div>
                   <div class="del" onclick="s2DeleteThumb(event, 1)">−</div>
                   <div class="corner-tag" id="s2Tag1"></div>
@@ -1078,19 +1148,24 @@
     s1Reset();
     s1SetThumbUploading();
     s1SetFileParsing();
+    setItemStates(['s1Thumb0', 's1Thumb1', 's1File0'], 'parsing');
     setTimeout(function() {
       s1SetThumbParsing();
       setTimeout(function() {
         if (type === 'success') {
           s1SetThumbSuccess(); s1SetFileStatus('ok');
+          setItemStates(['s1Thumb0', 's1Thumb1', 's1File0'], 'ok');
           S1_FIELDS.forEach(function(k) {
             var el = document.getElementById('s1-' + k);
             if (el && MOCK[k]) { el.value = MOCK[k]; el.className = ''; }
           });
         } else if (type === 'duplicate') {
           s1SetThumbDuplicate(); s1SetFileStatus('dup');
+          setItemStates(['s1Thumb0', 's1Thumb1'], 'ok');
+          setItemStates(['s1File0'], 'dup');
         } else {
           s1SetThumbError(); s1SetFileStatus('err');
+          setItemStates(['s1Thumb0', 's1Thumb1', 's1File0'], 'err');
         }
       }, 1500);
     }, 1000);
@@ -1743,7 +1818,94 @@
     document.getElementById('s3TotalAmount').value = '-';
     document.getElementById('s3ParentNote').style.display = 'none';
   }
+
+  /* ===== 原图查看器（Web） ===== */
+  function openImgViewer(itemId) {
+    var item = document.getElementById(itemId);
+    if (!item) return;
+    var state = item.dataset.state || 'ok';
+    if (state === 'parsing' || state === 'uploading') return;
+    // 复制缩略图背景
+    var ivImg = document.getElementById('ivImg');
+    ivImg.innerHTML = '';
+    var bg = document.createElement('div');
+    var bgClass = item.dataset.bg || 'b0';
+    bg.className = 'bg ' + (bgClass === 'b0' ? '' : bgClass);
+    ivImg.appendChild(bg);
+    renderViewerResult(itemId, state);
+    document.getElementById('imgViewerMask').classList.add('show');
+  }
+
+  function closeImgViewer(e) {
+    if (e && e.target && e.target.id !== 'imgViewerMask' && !e.target.classList.contains('iv-close')) return;
+    document.getElementById('imgViewerMask').classList.remove('show');
+  }
+
+  function renderViewerResult(itemId, state) {
+    var result = document.getElementById('ivResult');
+    var head = '';
+    var body = '';
+    if (state === 'ok') {
+      head = '<div class="iv-result-head">' +
+               '<span class="iv-result-status ok">✓ 识别成功</span>' +
+               '<span class="iv-filename">testtest.pdf</span>' +
+             '</div>';
+      body = '<div class="iv-fields">' +
+               '<div class="iv-field"><label>发票号码</label><span>20260810001234</span></div>' +
+               '<div class="iv-field"><label>开票时间</label><span>2026-08-08</span></div>' +
+               '<div class="iv-field full"><label>销售方</label><span>星辰信息技术有限公司</span></div>' +
+               '<div class="iv-field"><label>金额</label><span>¥ 1,280.00</span></div>' +
+               '<div class="iv-field"><label>税额</label><span>¥ 73.63</span></div>' +
+             '</div>' +
+             '<div class="iv-actions">' +
+               '<button class="iv-cancel" onclick="closeImgViewer()">关闭</button>' +
+               '<button class="iv-retry" onclick="closeImgViewer()">确认</button>' +
+             '</div>';
+    } else if (state === 'err') {
+      head = '<div class="iv-result-head">' +
+               '<span class="iv-result-status err">✕ 识别失败</span>' +
+               '<span class="iv-filename">invoice_001.jpg</span>' +
+             '</div>';
+      body = '<div class="iv-reason err"><b>识别失败原因：</b>图片模糊或角度倾斜，关键字段（发票号、金额）无法准确识别。建议：<br>· 重新拍摄时确保发票平整、清晰<br>· 光线充足，避免反光和阴影<br>· 包含完整的发票边框和文字</div>' +
+             '<div class="iv-actions">' +
+               '<button class="iv-cancel" onclick="closeImgViewer()">关闭</button>' +
+               '<button class="iv-retry" onclick="closeImgViewer()">重新上传</button>' +
+             '</div>';
+    } else if (state === 'dup') {
+      head = '<div class="iv-result-head">' +
+               '<span class="iv-result-status dup">⚠ 发票重复</span>' +
+               '<span class="iv-filename">testtest.pdf</span>' +
+             '</div>';
+      body = '<div class="iv-reason dup"><b>该发票已存在系统中：</b><br>· 发票号码：<b>20260810001234</b><br>· 提交人：李四<br>· 提交时间：2026-08-05 14:23<br>同一张发票不能重复提交。</div>' +
+             '<div class="iv-actions">' +
+               '<button class="iv-cancel" onclick="closeImgViewer()">我知道了</button>' +
+             '</div>';
+    }
+    result.innerHTML = head + body;
+  }
+
+  function setItemState(id, state) {
+    var el = document.getElementById(id);
+    if (el) el.dataset.state = state;
+  }
+  function setItemStates(ids, state) {
+    ids.forEach(function(id) { setItemState(id, state); });
+  }
 </script>
+
+<!-- 原图查看器（Web 居中弹窗） -->
+<div class="img-viewer-mask" id="imgViewerMask" onclick="closeImgViewer(event)">
+  <div class="img-viewer" onclick="event.stopPropagation()">
+    <div class="iv-head">
+      <span class="iv-title">附件识别详情</span>
+      <button class="iv-close" onclick="closeImgViewer()">✕</button>
+    </div>
+    <div class="iv-image-area">
+      <div class="iv-img" id="ivImg"></div>
+    </div>
+    <div class="iv-result" id="ivResult"></div>
+  </div>
+</div>
 
 </body>
 </html>
