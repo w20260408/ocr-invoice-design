@@ -301,6 +301,11 @@
     margin: 0 70px 12px; border-radius: 6px; font-size: 13px;
     display: flex; align-items: center; gap: 8px; flex-shrink: 0;
   }
+  .iv-remark {
+    padding: 10px 70px 14px; font-size: 12px; color: #ccc;
+    flex-shrink: 0; line-height: 1.7;
+  }
+  .iv-remark b { color: #fff; font-weight: 500; }
   .iv-result {
     flex-shrink: 0; background: #fff; border-radius: 16px 16px 0 0;
     padding: 16px 18px 20px; max-height: 50%; overflow-y: auto;
@@ -916,6 +921,7 @@
     <div class="iv-image-wrap" id="ivImageWrap"></div>
   </div>
   <div id="ivBanner" style="display:none;"></div>
+  <div class="iv-remark" id="ivRemark"><b>备注：</b>识别结果已回填至工单字段，请核对金额、发票号码及销售方信息。</div>
   <div class="iv-toolbar">
     <button class="iv-tool-btn" onclick="ivZoom(1)" title="放大">
       <svg viewBox="0 0 24 24"><path d="M9 2a7 7 0 015.5 11.3l4.9 4.9-1.4 1.4-4.9-4.9A7 7 0 119 2zm0 2a5 5 0 100 10 5 5 0 000-10zm0 2v2H7v2h2v2h2v-2h2V8h-2V6H9z"/></svg>
@@ -1121,6 +1127,16 @@
       banner.outerHTML = '<div class="iv-dup-banner" id="ivBanner"><b>发票重复：</b>该发票已存在于系统中（发票号 ' + (window._ivIds[0] === itemId ? '20260810001234' : '67163448') + '），重复提交将不会被处理</div>';
     } else {
       banner.outerHTML = '<div id="ivBanner" style="display:none;"></div>';
+    }
+    var remark = document.getElementById('ivRemark');
+    if (remark) {
+      if (state === 'err') {
+        remark.innerHTML = '<b>备注：</b>当前图片文字不清晰，仅识别到部分信息，建议重新上传高清原图后再次识别。';
+      } else if (state === 'dup') {
+        remark.innerHTML = '<b>备注：</b>系统检测到该发票已重复提交，重复发票将不会被处理，请确认是否需要继续。';
+      } else {
+        remark.innerHTML = '<b>备注：</b>识别结果已回填至工单字段，请核对金额、发票号码及销售方信息。';
+      }
     }
   }
 
