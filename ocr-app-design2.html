@@ -211,8 +211,9 @@
     font-size: 18px; cursor: pointer; backdrop-filter: blur(8px);
   }
   .iv-image-area {
-    flex: 1; display: flex; align-items: center; justify-content: center;
-    padding: 50px 70px 12px; min-height: 0; position: relative;
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 50px 70px 20px; min-height: 0; position: relative;
   }
   .iv-image-wrap {
     max-width: 100%; max-height: 100%; position: relative;
@@ -302,10 +303,12 @@
     display: flex; align-items: center; gap: 8px; flex-shrink: 0;
   }
   .iv-remark {
-    padding: 10px 70px 14px; font-size: 12px; color: #ccc;
-    flex-shrink: 0; line-height: 1.7;
+    margin-top: 14px; font-size: 12px; color: #ccc;
+    line-height: 1.7; text-align: center; max-width: 560px;
   }
   .iv-remark b { color: #fff; font-weight: 500; }
+  .iv-remark.fail { color: #f56c6c; }
+  .iv-remark.dup { color: #e6a23c; }
   .iv-result {
     flex-shrink: 0; background: #fff; border-radius: 16px 16px 0 0;
     padding: 16px 18px 20px; max-height: 50%; overflow-y: auto;
@@ -919,9 +922,9 @@
   <button class="iv-nav next" onclick="ivNavigate(1)">›</button>
   <div class="iv-image-area" id="ivImageArea">
     <div class="iv-image-wrap" id="ivImageWrap"></div>
+    <div class="iv-remark" id="ivRemark"><b>备注：</b>识别结果已回填至工单字段，请核对金额、发票号码及销售方信息。</div>
   </div>
   <div id="ivBanner" style="display:none;"></div>
-  <div class="iv-remark" id="ivRemark"><b>备注：</b>识别结果已回填至工单字段，请核对金额、发票号码及销售方信息。</div>
   <div class="iv-toolbar">
     <button class="iv-tool-btn" onclick="ivZoom(1)" title="放大">
       <svg viewBox="0 0 24 24"><path d="M9 2a7 7 0 015.5 11.3l4.9 4.9-1.4 1.4-4.9-4.9A7 7 0 119 2zm0 2a5 5 0 100 10 5 5 0 000-10zm0 2v2H7v2h2v2h2v-2h2V8h-2V6H9z"/></svg>
@@ -1132,9 +1135,12 @@
     if (remark) {
       var seq = (idx >= 0 ? idx : 0) + 1;
       var no = String(seq).padStart(3, '0');
+      remark.className = 'iv-remark';
       if (state === 'err') {
+        remark.className = 'iv-remark fail';
         remark.innerHTML = '<b>备注：</b>图片' + no + '，识别结果：失败。原因：图片文字不清晰，仅识别到部分信息，建议重新上传高清原图后再次识别。';
       } else if (state === 'dup') {
+        remark.className = 'iv-remark dup';
         remark.innerHTML = '<b>备注：</b>图片' + no + '，识别结果：重复。原因：该发票已存在于系统中（发票号 ' + (window._ivIds[0] === itemId ? '20260810001234' : '67163448') + '），重复提交将不会被处理。';
       } else {
         remark.innerHTML = '<b>备注：</b>图片' + no + '，识别结果：成功。已自动回填至工单字段，请核对金额、发票号码及销售方信息。';
