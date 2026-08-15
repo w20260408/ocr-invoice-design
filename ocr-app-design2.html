@@ -189,13 +189,28 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .corner-tag {
-    position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
-    border-radius: 50%; display: none; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700; color: #fff; z-index: 2;
+  /* 缩略图左上角编号 */
+  .att-item .thumb-index {
+    position: absolute; top: 6px; left: 6px; z-index: 2;
+    padding: 2px 7px; border-radius: 4px;
+    background: #409eff; color: #fff;
+    font-size: 10px; font-weight: 600;
+    display: flex; align-items: center;
   }
-  .corner-tag.ok { background: #67c23a; display: flex; }
-  .corner-tag.fail { background: #f56c6c; display: flex; }
+  /* 缩略图左下角状态标签 */
+  .att-item .thumb-status {
+    position: absolute; bottom: 6px; left: 6px; z-index: 2;
+    padding: 2px 6px; border-radius: 4px;
+    background: rgba(0,0,0,.55); color: #fff;
+    font-size: 10px; font-weight: 500;
+    display: none; align-items: center; gap: 4px;
+  }
+  .att-item .thumb-status.ok { background: #67c23a; display: flex; }
+  .att-item .thumb-status.fail { background: #f56c6c; display: flex; }
+  .att-item .thumb-status.dup { background: #e6a23c; display: flex; }
+  .att-item .thumb-status .dot {
+    width: 5px; height: 5px; border-radius: 50%; background: #fff;
+  }
 
   /* ===== 原图查看器（限定在手机框内，iOS 照片预览风格） ===== */
   .img-viewer {
@@ -634,14 +649,16 @@
             </div>
           </div>
           <div class="att-grid">
-            <div class="att-item" id="s1T1" data-state="parsing" data-bg="b0" onclick="openImgViewer('s1T1')">
+            <div class="att-item" id="s1T1" data-state="parsing" data-bg="b0" data-idx="1" onclick="openImgViewer('s1T1')">
               <div class="bg"></div>
+              <div class="thumb-index">#001</div>
+              <div class="thumb-status" id="s1Status1"></div>
               <div class="overlay dark" id="s1Ovl1"><div class="spinner"></div><span>识别中</span></div>
             </div>
-            <div class="att-item" id="s1T2" data-state="ok" data-bg="b2" onclick="openImgViewer('s1T2')">
+            <div class="att-item" id="s1T2" data-state="ok" data-bg="b2" data-idx="2" onclick="openImgViewer('s1T2')">
               <div class="bg b2"></div>
-              <div class="overlay dark" id="s1Ovl2"><div class="spinner"></div><span>识别中</span></div>
-              <div class="corner-tag" id="s1Tag2">✓</div>
+              <div class="thumb-index">#002</div>
+              <div class="thumb-status ok" id="s1Status2"><span class="dot"></span>识别成功</div>
             </div>
           </div>
           <!-- PDF 文件项 -->
@@ -695,14 +712,16 @@
             </div>
           </div>
           <div class="att-grid" id="s2ThumbGrid">
-            <div class="att-item" id="s2T1" data-state="parsing" data-bg="b0" onclick="openImgViewer('s2T1')">
+            <div class="att-item" id="s2T1" data-state="parsing" data-bg="b0" data-idx="1" onclick="openImgViewer('s2T1')">
               <div class="bg"></div>
+              <div class="thumb-index">#001</div>
+              <div class="thumb-status" id="s2Status1"></div>
               <div class="overlay dark" id="s2Ovl1"><div class="spinner"></div><span>识别中</span></div>
             </div>
-            <div class="att-item" id="s2T2" data-state="ok" data-bg="b2" onclick="openImgViewer('s2T2')">
+            <div class="att-item" id="s2T2" data-state="ok" data-bg="b2" data-idx="2" onclick="openImgViewer('s2T2')">
               <div class="bg b2"></div>
-              <div class="overlay dark" id="s2Ovl2"><div class="spinner"></div><span>识别中</span></div>
-              <div class="corner-tag" id="s2Tag2">✓</div>
+              <div class="thumb-index">#002</div>
+              <div class="thumb-status ok" id="s2Status2"><span class="dot"></span>识别成功</div>
             </div>
           </div>
           <!-- PDF 文件项 -->
@@ -917,16 +936,25 @@
     s1State = (s1State + 1) % 4;
     var ovl1 = document.getElementById('s1Ovl1');
     var ovl2 = document.getElementById('s1Ovl2');
-    var tag2 = document.getElementById('s1Tag2');
+    var status1 = document.getElementById('s1Status1');
+    var status2 = document.getElementById('s1Status2');
     var sum  = document.getElementById('s1Summary');
     var no   = document.getElementById('s1No');
     var amt  = document.getElementById('s1Amt');
     var seller = document.getElementById('s1Seller');
     var date = document.getElementById('s1Date');
 
+    function setThumbStatus(el, type, text) {
+      if (!el) return;
+      el.className = 'thumb-status' + (type ? ' ' + type : '');
+      el.innerHTML = text ? '<span class="dot"></span>' + text : '';
+    }
+
     // reset
     [ovl1,ovl2].forEach(function(o){ o.className='overlay'; o.innerHTML=''; });
-    tag2.className='corner-tag'; sum.style.display='none';
+    setThumbStatus(status1, '', '');
+    setThumbStatus(status2, '', '');
+    sum.style.display='none';
     [no,amt,seller,date].forEach(function(e){ e.className='form-input'; e.value=''; e.placeholder='识别后自动填入'; });
     s1SetPdfStatus('default');
 
@@ -938,7 +966,8 @@
     } else if (s1State === 1) {
       // 全部成功
       ovl1.innerHTML=''; ovl2.innerHTML='';
-      tag2.className='corner-tag ok';
+      setThumbStatus(status1, 'ok', '识别成功');
+      setThumbStatus(status2, 'ok', '识别成功');
       no.className='form-input filled'; no.value='20260810001234';
       amt.className='form-input filled'; amt.value='¥ 1,280.00';
       seller.className='form-input filled'; seller.value='星辰信息技术有限公司';
@@ -947,15 +976,14 @@
     } else if (s1State === 2) {
       // 混合：1成功 1模糊失败
       ovl1.innerHTML='';
-      ovl2.className='overlay fail'; ovl2.innerHTML='<span style="font-size:10px;">× 图片模糊</span>';
-      tag2.className='corner-tag ok';
+      setThumbStatus(status1, 'ok', '识别成功');
+      setThumbStatus(status2, 'fail', '识别失败');
       sum.style.display='flex';
       s1SetPdfStatus('ok');
     } else {
       // 全部识别失败
-      ovl1.className='overlay fail'; ovl1.innerHTML='<span style="font-size:10px;">× 识别失败</span>';
-      ovl2.className='overlay fail'; ovl2.innerHTML='<span style="font-size:10px;">× 图片模糊</span>';
-      tag2.className='corner-tag fail';
+      setThumbStatus(status1, 'fail', '识别失败');
+      setThumbStatus(status2, 'fail', '识别失败');
       sum.style.display='flex';
       s1SetPdfStatus('err');
     }
@@ -1150,25 +1178,34 @@
   function s2SetThumbs(state) {
     var ovl1 = document.getElementById('s2Ovl1');
     var ovl2 = document.getElementById('s2Ovl2');
-    var tag2 = document.getElementById('s2Tag2');
+    var status1 = document.getElementById('s2Status1');
+    var status2 = document.getElementById('s2Status2');
+    function setStatus(el, type, text) {
+      if (!el) return;
+      el.className = 'thumb-status' + (type ? ' ' + type : '');
+      el.innerHTML = text ? '<span class="dot"></span>' + text : '';
+    }
     [ovl1, ovl2].forEach(function(o){ o.className='overlay'; o.innerHTML=''; });
-    if (tag2) tag2.className = 'corner-tag';
+    setStatus(status1, '', '');
+    setStatus(status2, '', '');
     if (state === 'parsing') {
       if (ovl1) { ovl1.className='overlay dark'; ovl1.innerHTML='<div class="spinner"></div><span>识别中</span>'; }
       if (ovl2) { ovl2.className='overlay dark'; ovl2.innerHTML='<div class="spinner"></div><span>识别中</span>'; }
       setItemState('s2T1', 'parsing');
       setItemState('s2T2', 'parsing');
     } else if (state === 'ok') {
-      if (tag2) tag2.className = 'corner-tag ok';
+      setStatus(status1, 'ok', '识别成功');
+      setStatus(status2, 'ok', '识别成功');
       setItemState('s2T1', 'ok');
       setItemState('s2T2', 'ok');
     } else if (state === 'err') {
-      if (ovl1) { ovl1.className='overlay fail'; ovl1.innerHTML='<span style="font-size:10px;">× 识别失败</span>'; }
-      if (ovl2) { ovl2.className='overlay fail'; ovl2.innerHTML='<span style="font-size:10px;">× 图片模糊</span>'; }
-      if (tag2) tag2.className = 'corner-tag fail';
+      setStatus(status1, 'fail', '识别失败');
+      setStatus(status2, 'fail', '识别失败');
       setItemState('s2T1', 'err');
       setItemState('s2T2', 'err');
     } else {
+      setStatus(status1, 'ok', '识别成功');
+      setStatus(status2, 'ok', '识别成功');
       setItemState('s2T1', 'ok');
       setItemState('s2T2', 'ok');
     }

@@ -192,13 +192,28 @@
     width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3);
     border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 4px;
   }
-  .s1-thumb .corner-tag {
-    position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
-    border-radius: 50%; display: none; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700; color: #fff; z-index: 2;
+  /* 缩略图左上角编号 */
+  .s1-thumb .thumb-index {
+    position: absolute; top: 6px; left: 6px; z-index: 2;
+    padding: 2px 8px; border-radius: 4px;
+    background: #409eff; color: #fff;
+    font-size: 11px; font-weight: 600;
+    display: flex; align-items: center;
   }
-  .s1-thumb .corner-tag.ok { background: #67c23a; display: flex; }
-  .s1-thumb .corner-tag.fail { background: #f56c6c; display: flex; }
+  /* 缩略图左下角状态标签 */
+  .s1-thumb .thumb-status {
+    position: absolute; bottom: 6px; left: 6px; z-index: 2;
+    padding: 3px 8px; border-radius: 4px;
+    background: rgba(0,0,0,.55); color: #fff;
+    font-size: 10px; font-weight: 500;
+    display: none; align-items: center; gap: 5px;
+  }
+  .s1-thumb .thumb-status.ok { background: #67c23a; display: flex; }
+  .s1-thumb .thumb-status.fail { background: #f56c6c; display: flex; }
+  .s1-thumb .thumb-status.dup { background: #e6a23c; display: flex; }
+  .s1-thumb .thumb-status .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #fff;
+  }
   .s1-thumb .del {
     position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
     border-radius: 50%; background: #f56c6c; color: #fff;
@@ -734,16 +749,18 @@
                 </div>
               </div>
               <div class="s1-thumb-grid" id="s1ThumbGrid">
-                <div class="s1-thumb" id="s1Thumb0" data-state="ok" data-bg="b0" onclick="openImgViewer('s1Thumb0')">
+                <div class="s1-thumb" id="s1Thumb0" data-state="ok" data-bg="b0" data-idx="1" onclick="openImgViewer('s1Thumb0')">
                   <div class="bg"></div>
                   <div class="del" onclick="s1DeleteThumb(event, 0)">−</div>
-                  <div class="corner-tag" id="s1Tag0"></div>
+                  <div class="thumb-index">#001</div>
+                  <div class="thumb-status" id="s1Status0"></div>
                   <div class="overlay" id="s1Ovl0"></div>
                 </div>
-                <div class="s1-thumb" id="s1Thumb1" data-state="ok" data-bg="b2" onclick="openImgViewer('s1Thumb1')">
+                <div class="s1-thumb" id="s1Thumb1" data-state="ok" data-bg="b2" data-idx="2" onclick="openImgViewer('s1Thumb1')">
                   <div class="bg b2"></div>
                   <div class="del" onclick="s1DeleteThumb(event, 1)">−</div>
-                  <div class="corner-tag" id="s1Tag1"></div>
+                  <div class="thumb-index">#002</div>
+                  <div class="thumb-status" id="s1Status1"></div>
                   <div class="overlay" id="s1Ovl1"></div>
                 </div>
               </div>
@@ -820,16 +837,18 @@
                 </div>
               </div>
               <div class="s1-thumb-grid" id="s2ThumbGrid">
-                <div class="s1-thumb" id="s2Thumb0" data-state="ok" data-bg="b0" onclick="openImgViewer('s2Thumb0')">
+                <div class="s1-thumb" id="s2Thumb0" data-state="ok" data-bg="b0" data-idx="1" onclick="openImgViewer('s2Thumb0')">
                   <div class="bg"></div>
                   <div class="del" onclick="s2DeleteThumb(event, 0)">−</div>
-                  <div class="corner-tag" id="s2Tag0"></div>
+                  <div class="thumb-index">#001</div>
+                  <div class="thumb-status" id="s2Status0"></div>
                   <div class="overlay" id="s2Ovl0"></div>
                 </div>
-                <div class="s1-thumb" id="s2Thumb1" data-state="ok" data-bg="b2" onclick="openImgViewer('s2Thumb1')">
+                <div class="s1-thumb" id="s2Thumb1" data-state="ok" data-bg="b2" data-idx="2" onclick="openImgViewer('s2Thumb1')">
                   <div class="bg b2"></div>
                   <div class="del" onclick="s2DeleteThumb(event, 1)">−</div>
-                  <div class="corner-tag" id="s2Tag1"></div>
+                  <div class="thumb-index">#002</div>
+                  <div class="thumb-status" id="s2Status1"></div>
                   <div class="overlay" id="s2Ovl1"></div>
                 </div>
               </div>
@@ -1083,9 +1102,9 @@
   function s1ResetThumbs() {
     s1GetThumbs().forEach(function(thumb, idx) {
       var ovl = thumb.querySelector('.overlay');
-      var tag = thumb.querySelector('.corner-tag');
+      var status = thumb.querySelector('.thumb-status');
       if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
-      if (tag) { tag.className = 'corner-tag'; tag.textContent = ''; }
+      if (status) { status.className = 'thumb-status'; status.innerHTML = ''; }
     });
   }
 
@@ -1150,27 +1169,27 @@
   function s1SetThumbSuccess() {
     s1GetThumbs().forEach(function(thumb) {
       var ovl = thumb.querySelector('.overlay');
-      var tag = thumb.querySelector('.corner-tag');
+      var status = thumb.querySelector('.thumb-status');
       if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
-      if (tag) { tag.className = 'corner-tag ok'; tag.textContent = '\u2713'; }
+      if (status) { status.className = 'thumb-status ok'; status.innerHTML = '<span class="dot"></span>识别成功'; }
     });
   }
 
   function s1SetThumbDuplicate() {
     s1GetThumbs().forEach(function(thumb) {
       var ovl = thumb.querySelector('.overlay');
-      var tag = thumb.querySelector('.corner-tag');
-      if (ovl) { ovl.className = 'overlay dup'; ovl.innerHTML = '<span style="font-size:11px;">\u26A0 已重复</span>'; }
-      if (tag) { tag.className = 'corner-tag fail'; tag.textContent = '!'; }
+      var status = thumb.querySelector('.thumb-status');
+      if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
+      if (status) { status.className = 'thumb-status dup'; status.innerHTML = '<span class="dot"></span>识别重复'; }
     });
   }
 
   function s1SetThumbError() {
     s1GetThumbs().forEach(function(thumb) {
       var ovl = thumb.querySelector('.overlay');
-      var tag = thumb.querySelector('.corner-tag');
-      if (ovl) { ovl.className = 'overlay fail'; ovl.innerHTML = '<span style="font-size:10px;">\u2717 识别失败</span><span style="font-size:9px;opacity:.8;margin-top:3px;">图片模糊</span>'; }
-      if (tag) { tag.className = 'corner-tag fail'; tag.textContent = '\u2717'; }
+      var status = thumb.querySelector('.thumb-status');
+      if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
+      if (status) { status.className = 'thumb-status fail'; status.innerHTML = '<span class="dot"></span>识别失败'; }
     });
   }
 
@@ -1233,9 +1252,9 @@
   function s2ResetThumbs() {
     s2GetThumbs().forEach(function(thumb) {
       var ovl = thumb.querySelector('.overlay');
-      var tag = thumb.querySelector('.corner-tag');
+      var status = thumb.querySelector('.thumb-status');
       if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
-      if (tag) { tag.className = 'corner-tag'; tag.textContent = ''; }
+      if (status) { status.className = 'thumb-status'; status.innerHTML = ''; }
     });
   }
   function s2ResetFiles() {
@@ -1298,27 +1317,27 @@
   function s2SetThumbSuccess() {
     s2GetThumbs().forEach(function(thumb) {
       var ovl = thumb.querySelector('.overlay');
-      var tag = thumb.querySelector('.corner-tag');
+      var status = thumb.querySelector('.thumb-status');
       if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
-      if (tag) { tag.className = 'corner-tag ok'; tag.textContent = '\u2713'; }
+      if (status) { status.className = 'thumb-status ok'; status.innerHTML = '<span class="dot"></span>识别成功'; }
     });
   }
 
   function s2SetThumbDuplicate() {
     s2GetThumbs().forEach(function(thumb) {
       var ovl = thumb.querySelector('.overlay');
-      var tag = thumb.querySelector('.corner-tag');
-      if (ovl) { ovl.className = 'overlay dup'; ovl.innerHTML = '<span style="font-size:11px;">\u26A0 已重复</span>'; }
-      if (tag) { tag.className = 'corner-tag fail'; tag.textContent = '!'; }
+      var status = thumb.querySelector('.thumb-status');
+      if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
+      if (status) { status.className = 'thumb-status dup'; status.innerHTML = '<span class="dot"></span>识别重复'; }
     });
   }
 
   function s2SetThumbError() {
     s2GetThumbs().forEach(function(thumb) {
       var ovl = thumb.querySelector('.overlay');
-      var tag = thumb.querySelector('.corner-tag');
-      if (ovl) { ovl.className = 'overlay fail'; ovl.innerHTML = '<span style="font-size:10px;">\u2717 识别失败</span><span style="font-size:9px;opacity:.8;margin-top:3px;">图片模糊</span>'; }
-      if (tag) { tag.className = 'corner-tag fail'; tag.textContent = '\u2717'; }
+      var status = thumb.querySelector('.thumb-status');
+      if (ovl) { ovl.className = 'overlay'; ovl.innerHTML = ''; }
+      if (status) { status.className = 'thumb-status fail'; status.innerHTML = '<span class="dot"></span>识别失败'; }
     });
   }
 
