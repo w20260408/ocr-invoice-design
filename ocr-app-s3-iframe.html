@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>添加数据 - OCR 识别插件（APP 端 iframe）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #fff; color: #303133; font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+  /* ===== 插件 iframe 页面（移动端全屏"添加数据"弹窗） ===== */
+  .plugin {
+    display: flex; flex-direction: column; height: 100%; min-height: 0;
+    border-radius: 16px 16px 0 0; overflow: hidden;
+    animation: slideUp .35s ease;
+  }
+  .plugin-head {
+    padding: 14px 18px; border-bottom: 1px solid #f0f0f0;
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .plugin-title { font-size: 16px; font-weight: 600; color: #303133; }
+  .plugin-close {
+    width: 28px; height: 28px; border-radius: 50%; background: #f5f5f5; border: none;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; color: #999; cursor: pointer;
+  }
+  .plugin-close:active { background: #e8e8e8; }
+  .plugin-body { flex: 1; overflow: auto; padding: 12px 16px; min-height: 0; }
+  .plugin-foot {
+    padding: 12px 18px; border-top: 1px solid #f0f0f0; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  .plugin-foot .summary { font-size: 13px; color: #606266; visibility: hidden; }
+  .plugin-foot .summary b { color: #67c23a; }
+  .plugin-foot .actions { display: flex; gap: 10px; }
+  .plugin-foot .actions button {
+    padding: 8px 20px; border-radius: 20px; font-size: 14px; cursor: pointer; border: none; font-weight: 500;
+  }
+  .plugin-foot .pn-cancel { background: #f5f5f5; color: #666; }
+  .plugin-foot .pn-confirm { background: #409eff; color: #fff; opacity: .4; pointer-events: none; transition: opacity .2s; }
+  .plugin-foot .pn-confirm.active { opacity: 1; pointer-events: auto; }
+
+  /* 独立打开提示 */
+  .standalone-hint {
+    display: none; padding: 8px 16px; background: #fffbe6; color: #e6a23c;
+    font-size: 12px; border-bottom: 1px solid #f5dab1; flex-shrink: 0;
+  }
+
+  /* ===== 上传区 ===== */
+  .s3-upload {
+    border: 1.5px dashed #d0d5dd; border-radius: 10px; padding: 22px; text-align: center;
+    background: #fafbfc; margin-bottom: 14px; cursor: pointer; transition: all .2s;
+  }
+  .s3-upload:active { background: #f0f7ff; border-color: #409eff; }
+  .s3-upload .uz-icon { font-size: 28px; color: #909399; margin-bottom: 6px; }
+  .s3-upload .uz-text { font-size: 13px; color: #606266; }
+  .s3-upload .uz-hint { font-size: 11px; color: #c0c4cc; margin-top: 2px; }
+  .s3-upload.uploading { border-style: solid; background: #fffbe6; border-color: #e6a23c; pointer-events: none; }
+  .s3-upload.uploading .uz-icon { color: #e6a23c; }
+
+  /* ===== 摘要条 ===== */
+  .s3-summary {
+    display: none; gap: 12px; padding: 8px 12px; background: #f5f7fa; border-radius: 8px;
+    margin-bottom: 12px; font-size: 11px; color: #606266; flex-wrap: wrap;
+  }
+  .s3-summary .stat { display: flex; align-items: center; gap: 3px; }
+  .s3-summary .stat b { font-size: 13px; }
+  .s3-summary .stat.ok b { color: #67c23a; }
+  .s3-summary .stat.dup b { color: #e6a23c; }
+  .s3-summary .stat.err b { color: #f56c6c; }
+  .s3-summary .stat.proc b { color: #909399; }
+
+  /* ===== 结果列表 ===== */
+  .s3-list-head {
+    display: none; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    font-size: 13px; font-weight: 600;
+  }
+  .s3-list-actions { display: flex; gap: 6px; }
+  .s3-list-actions button {
+    padding: 3px 10px; border-radius: 12px; font-size: 11px; cursor: pointer;
+    border: 1px solid #dcdfe6; background: #fff; color: #606266;
+  }
+  .s3-list-actions button.danger { color: #f56c6c; border-color: #fde2e2; }
+
+  .s3-result-wrap { border: 1px solid #f0f0f0; border-radius: 8px; overflow: hidden; }
+  .s3-result-table { width: 100%; border-collapse: collapse; font-size: 11px; display: none; }
+  .s3-result-table th, .s3-result-table td { padding: 8px 6px; border-bottom: 1px solid #f0f0f0; text-align: left; color: #606266; }
+  .s3-result-table th { background: #f5f7fa; font-weight: 500; color: #909399; font-size: 10px; }
+  .s3-result-table .col-chk { width: 28px; text-align: center; }
+  .s3-result-table .col-name { width: 80px; }
+  .s3-result-table .col-val { min-width: 60px; }
+  .s3-result-table .col-status { width: 60px; text-align: center; }
+  .s3-result-table .col-op { width: 50px; text-align: center; }
+  .s3-result-table .rchk { accent-color: #409eff; }
+  .s3-result-table .rchk:disabled { opacity: .35; }
+  .s3-result-table .fname { font-weight: 500; color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; display: block; }
+  .s3-result-table .fval { font-size: 10px; font-family: "SF Mono","Menlo",monospace; }
+
+  .s3-badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: 500; }
+  .s3-badge.ok { background: #f0f9eb; color: #67c23a; }
+  .s3-badge.dup { background: #fdf6ec; color: #e6a23c; }
+  .s3-badge.err { background: #fef0f0; color: #f56c6c; }
+  .s3-badge.proc { background: #f5f7fa; color: #909399; }
+  .s3-badge.proc .spin {
+    display: inline-block; width: 8px; height: 8px; border: 1.5px solid currentColor; border-top-color: transparent;
+    border-radius: 50%; animation: spin .8s linear infinite; margin-right: 3px; vertical-align: middle;
+  }
+  .s3-retry { padding: 2px 8px; border: none; border-radius: 3px; background: #fef0f0; color: #f56c6c; font-size: 10px; cursor: pointer; }
+  .s3-remove { margin-left: 3px; padding: 1px 6px; border: none; border-radius: 3px; background: #f5f5f5; color: #999; font-size: 10px; cursor: pointer; }
+  .s3-empty { text-align: center; padding: 30px; color: #c0c4cc; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="plugin">
+  <div class="plugin-head">
+    <div class="plugin-title">添加数据</div>
+    <button class="plugin-close" onclick="doClose()">×</button>
+  </div>
+
+  <!-- 独立打开提示（嵌入 iframe 时隐藏） -->
+  <div class="standalone-hint" id="standaloneHint">
+    当前为独立预览模式。嵌入工单页面的 iframe 后，本提示自动隐藏，「确定」将通过 postMessage 通知父页面回填数据。
+  </div>
+
+  <div class="plugin-body">
+    <!-- 上传区 -->
+    <div class="s3-upload" id="s3UploadZone" onclick="s3SimUpload()">
+      <div class="uz-icon" id="s3UzIcon">📎</div>
+      <div class="uz-text">点击或拖拽上传附件</div>
+      <div class="uz-hint">支持 jpg、png、pdf</div>
+    </div>
+
+    <!-- 摘要条 -->
+    <div class="s3-summary" id="s3Summary">
+      <div class="stat proc" id="s3StatProc"><b>0</b> 解析中</div>
+      <div class="stat ok" id="s3StatOk"><b>0</b> 成功</div>
+      <div class="stat dup" id="s3StatDup"><b>0</b> 重复</div>
+      <div class="stat err" id="s3StatErr"><b>0</b> 失败</div>
+    </div>
+
+    <!-- 列表头 -->
+    <div class="s3-list-head" id="s3ListHd">
+      <span>📋 识别结果 <span id="s3Count" style="font-weight:400;color:#909399;">(0)</span></span>
+      <div class="s3-list-actions">
+        <button onclick="s3SelectAllOk()">全选成功</button>
+        <button onclick="s3ClearAll()" class="danger">清空</button>
+      </div>
+    </div>
+
+    <!-- 结果表 -->
+    <div class="s3-result-wrap">
+      <div class="s3-empty" id="s3Empty">上传附件后将在此显示解析结果</div>
+      <table class="s3-result-table" id="s3RTable">
+        <thead>
+          <tr>
+            <th class="col-chk"><input type="checkbox" id="s3CheckAll" onchange="s3ToggleAll()"></th>
+            <th class="col-name">文件名</th>
+            <th class="col-val">字段A</th>
+            <th class="col-val">字段B</th>
+            <th class="col-val">字段C</th>
+            <th class="col-status">状态</th>
+            <th class="col-op">操作</th>
+          </tr>
+        </thead>
+        <tbody id="s3RTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="plugin-foot">
+    <div class="summary" id="s3FootSum">已选择 <b id="s3SelCnt">0</b> 条</div>
+    <div class="actions">
+      <button class="pn-cancel" onclick="doClose()">取消</button>
+      <button class="pn-confirm" id="s3ConfirmBtn" onclick="s3Confirm()">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ===== 数据与状态 ===== */
+  var S3_DATA = [];
+  var S3_SEQ = 0;
+  var S3_MOCK = [
+    { fA:'67163448', fB:'2022-10-12', fC:'星辰信息技术有限公司', r:'success' },
+    { fA:'67163449', fB:'2022-10-13', fC:'海港云联技术有限公司', r:'success' },
+    { fA:'67163450', fB:'2022-10-14', fC:'南方数据技术有限公司', r:'duplicate' },
+    { fA:'67163451', fB:'2022-10-15', fC:'鹏程未来科技有限公司', r:'error' },
+    { fA:'67163452', fB:'2022-11-01', fC:'钱塘江岸数据有限公司', r:'success' },
+    { fA:'67163453', fB:'2022-11-05', fC:'锦城智创软件有限公司', r:'success' },
+  ];
+  var S3_MI = 0;
+
+  /* ===== 模拟上传（移动端原型：点击上传区直接模拟上传 3 个文件） ===== */
+  function s3SimUpload() {
+    var zone = document.getElementById('s3UploadZone');
+    if (zone.classList.contains('uploading')) return;
+    zone.classList.add('uploading');
+    document.getElementById('s3UzIcon').textContent = '⏳';
+    zone.querySelector('.uz-text').textContent = '正在上传 3 个文件...';
+
+    // 清空旧数据
+    S3_DATA = [];
+    var files = [
+      { name:'发票_001.jpg', dup:false },
+      { name:'发票_002.jpg', dup:false },
+      { name:'发票_003.png', dup:false },
+    ];
+
+    files.forEach(function(f) {
+      S3_SEQ++;
+      S3_DATA.push({ id:'f'+S3_SEQ, filename:f.name, fA:'', fB:'', fC:'', status:'pending' });
+    });
+
+    s3Render();
+
+    setTimeout(function() {
+      S3_DATA.forEach(function(d){ d.status='parsing'; });
+      s3Render();
+    }, 500);
+
+    // 模拟逐条解析
+    S3_DATA.forEach(function(d, i) {
+      setTimeout(function() {
+        var m = S3_MOCK[S3_MI % S3_MOCK.length]; S3_MI++;
+        d.status = m.r;
+        if (m.r === 'success') { d.fA=m.fA; d.fB=m.fB; d.fC=m.fC; }
+        else { d.fA=d.fB=d.fC=''; }
+        s3Render();
+        if (i === S3_DATA.length-1) {
+          zone.classList.remove('uploading');
+          document.getElementById('s3UzIcon').textContent = '📎';
+          zone.querySelector('.uz-text').textContent = '点击或拖拽上传附件';
+        }
+      }, 1200 + i * 700);
+    });
+  }
+
+  function s3Render() {
+    var empty = document.getElementById('s3Empty');
+    var table = document.getElementById('s3RTable');
+    var tbody = document.getElementById('s3RTbody');
+    var listHd = document.getElementById('s3ListHd');
+    var summary = document.getElementById('s3Summary');
+
+    if (S3_DATA.length === 0) {
+      empty.style.display = ''; table.style.display = 'none';
+      listHd.style.display = 'none'; summary.style.display = 'none';
+      s3UpdateFoot(0);
+      return;
+    }
+
+    empty.style.display = 'none'; table.style.display = '';
+    listHd.style.display = 'flex'; summary.style.display = 'flex';
+
+    var ok=0, dup=0, err=0, proc=0;
+    tbody.innerHTML = S3_DATA.map(function(d) {
+      if (d.status==='success') ok++; else if (d.status==='duplicate') dup++;
+      else if (d.status==='error') err++; else if (d.status==='parsing') proc++;
+
+      var disabled = d.status!=='success' ? ' disabled' : '';
+      var checked = d.status==='success' ? ' checked' : '';
+      var fA = d.fA||'—', fB = d.fB||'—', fC = d.fC||'—';
+      var badge = '';
+      if (d.status==='parsing') badge = '<span class="s3-badge proc"><span class="spin"></span>识别中</span>';
+      else if (d.status==='success') badge = '<span class="s3-badge ok">✓ 已识别</span>';
+      else if (d.status==='duplicate') badge = '<span class="s3-badge dup">⚠ 重复</span>';
+      else badge = '<span class="s3-badge err">✗ 失败</span>';
+
+      var op = (d.status==='error')
+        ? '<button class="s3-retry" onclick="s3Retry(\''+d.id+'\')">重试</button>'
+        : (d.status==='duplicate' ? '<span style="color:#c0c4cc;font-size:10px;">不可选</span>' : '');
+      op += '<button class="s3-remove" onclick="s3Remove(\''+d.id+'\')">✕</button>';
+
+      return '<tr><td class="col-chk"><input type="checkbox" class="rchk s3-item"' + disabled + checked + ' data-id="'+d.id+'" onchange="s3OnCheck()"></td>' +
+        '<td><span class="fname">'+d.filename+'</span></td>' +
+        '<td><span class="fval">'+fA+'</span></td>' +
+        '<td><span class="fval">'+fB+'</span></td>' +
+        '<td><span class="fval">'+fC+'</span></td>' +
+        '<td class="col-status">'+badge+'</td>' +
+        '<td class="col-op">'+op+'</td></tr>';
+    }).join('');
+
+    document.getElementById('s3StatProc').innerHTML = '<b>'+proc+'</b> 解析中';
+    document.getElementById('s3StatOk').innerHTML = '<b>'+ok+'</b> 成功';
+    document.getElementById('s3StatDup').innerHTML = '<b>'+dup+'</b> 重复';
+    document.getElementById('s3StatErr').innerHTML = '<b>'+err+'</b> 失败';
+    document.getElementById('s3Count').textContent = '(共 '+S3_DATA.length+' 条)';
+
+    s3OnCheck();
+  }
+
+  function s3OnCheck() {
+    var cbs = document.querySelectorAll('#s3RTbody .s3-item:checked');
+    var cnt = cbs.length;
+    var fs = document.getElementById('s3FootSum');
+    var cb = document.getElementById('s3ConfirmBtn');
+    if (cnt>0) { fs.style.visibility='visible'; document.getElementById('s3SelCnt').textContent=cnt; cb.classList.add('active'); }
+    else { fs.style.visibility='hidden'; cb.classList.remove('active'); }
+
+    var allCbs = document.querySelectorAll('#s3RTbody .s3-item:not(:disabled)');
+    var ca = document.getElementById('s3CheckAll');
+    if (allCbs.length===0) { ca.checked=false; ca.indeterminate=false; }
+    else if (cbs.length===allCbs.length) { ca.checked=true; ca.indeterminate=false; }
+    else { ca.checked=false; ca.indeterminate=cbs.length>0; }
+  }
+
+  function s3ToggleAll() {
+    var ca = document.getElementById('s3CheckAll');
+    document.querySelectorAll('#s3RTbody .s3-item:not(:disabled)').forEach(function(c){ c.checked=ca.checked; });
+    s3OnCheck();
+  }
+
+  function s3SelectAllOk() {
+    document.querySelectorAll('#s3RTbody .s3-item:not(:disabled)').forEach(function(c){ c.checked=true; });
+    s3OnCheck();
+  }
+
+  function s3Retry(id) {
+    var d = S3_DATA.find(function(x){ return x.id===id; }); if (!d) return;
+    d.status='parsing'; s3Render();
+    setTimeout(function(){
+      var m = S3_MOCK[S3_MI % S3_MOCK.length]; S3_MI++;
+      d.status=m.r;
+      if (m.r==='success'){ d.fA=m.fA; d.fB=m.fB; d.fC=m.fC; } else { d.fA=d.fB=d.fC=''; }
+      s3Render();
+    }, 800);
+  }
+
+  function s3Remove(id) {
+    S3_DATA = S3_DATA.filter(function(x){ return x.id!==id; });
+    s3Render();
+  }
+
+  function s3ClearAll() { S3_DATA=[]; s3Render(); s3ResetUploadZone(); }
+
+  function s3ResetUploadZone() {
+    var zone = document.getElementById('s3UploadZone');
+    zone.classList.remove('uploading');
+    document.getElementById('s3UzIcon').textContent = '📎';
+    zone.querySelector('.uz-text').textContent = '点击或拖拽上传附件';
+  }
+
+  function s3UpdateFoot(cnt) {
+    if (cnt>0) {
+      document.getElementById('s3FootSum').style.visibility='visible';
+      document.getElementById('s3SelCnt').textContent=cnt;
+      document.getElementById('s3ConfirmBtn').classList.add('active');
+    } else {
+      document.getElementById('s3FootSum').style.visibility='hidden';
+      document.getElementById('s3ConfirmBtn').classList.remove('active');
+    }
+  }
+
+  /* ===== 确认 / 关闭（postMessage 与父页面通信） ===== */
+  function isEmbedded() {
+    try { return window.parent !== window; } catch (e) { return false; }
+  }
+
+  function s3Confirm() {
+    var cbs = document.querySelectorAll('#s3RTbody .s3-item:checked');
+    if (cbs.length===0) return;
+
+    var items = [];
+    cbs.forEach(function(c) {
+      var d = S3_DATA.find(function(x){ return x.id===c.getAttribute('data-id'); });
+      if (d) items.push({ filename:d.filename, fieldA:d.fA, fieldB:d.fB, fieldC:d.fC });
+    });
+
+    if (isEmbedded()) {
+      window.parent.postMessage({ type: 'OCR_IFRAME_CONFIRM', items: items }, '*');
+    } else {
+      var txt = items.map(function(it, i) {
+        return (i + 1) + '. ' + it.filename + ' → ' + it.fieldA + ' | ' + it.fieldB + ' | ' + it.fieldC;
+      }).join('\n');
+      alert('已确认选择 ' + items.length + ' 条数据：\n\n' + txt);
+    }
+  }
+
+  function doClose() {
+    if (isEmbedded()) {
+      window.parent.postMessage({ type: 'OCR_IFRAME_CLOSE' }, '*');
+    } else {
+      alert('独立预览模式：关闭动作将由父页面（工单页）接管。');
+    }
+  }
+
+  // 独立打开时显示提示条
+  (function() {
+    try {
+      if (window.parent === window) {
+        document.getElementById('standaloneHint').style.display = 'block';
+      }
+    } catch (e) {
+      document.getElementById('standaloneHint').style.display = 'block';
+    }
+  })();
+</script>
+</body>
+</html>
