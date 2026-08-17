@@ -142,6 +142,14 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 11px; flex-shrink: 0;
   }
+  /* PDF 附件编号（与图片缩略图编号一致） */
+  .s1-file-item .file-index {
+    position: absolute; top: -7px; left: -7px; z-index: 2;
+    padding: 1px 7px; border-radius: 4px;
+    background: #409eff; color: #fff;
+    font-size: 10px; font-weight: 600;
+    border: 2px solid #fff; line-height: 1.2;
+  }
   .s1-file-item .name {
     flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
@@ -741,6 +749,7 @@
                 </div>
                 <div class="s1-file-list" id="s1FileList">
                   <div class="s1-file-item" id="s1File0" data-type="pdf" data-state="ok" onclick="openImgViewer('s1File0')">
+                    <span class="file-index">#003</span>
                     <span class="icon">📁</span>
                     <span class="name">testtest.pdf</span>
                     <span class="parse-spin"></span>
@@ -829,6 +838,7 @@
                 </div>
                 <div class="s1-file-list" id="s2FileList">
                   <div class="s1-file-item" id="s2File0" data-type="pdf" data-state="ok" onclick="openImgViewer('s2File0')">
+                    <span class="file-index">#003</span>
                     <span class="icon">📁</span>
                     <span class="name">testtest.pdf</span>
                     <span class="parse-spin"></span>

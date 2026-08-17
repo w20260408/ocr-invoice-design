@@ -118,7 +118,15 @@
   .att-file {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 12px; background: #fff; border-radius: 8px;
-    margin-top: 10px; cursor: pointer;
+    margin-top: 10px; cursor: pointer; position: relative;
+  }
+  /* PDF 附件编号（与图片缩略图编号一致） */
+  .att-file .file-index {
+    position: absolute; top: -6px; left: -6px; z-index: 2;
+    padding: 1px 6px; border-radius: 4px;
+    background: #409eff; color: #fff;
+    font-size: 10px; font-weight: 600;
+    border: 2px solid #fff; line-height: 1.2;
   }
   .att-file .file-icon {
     width: 36px; height: 36px; border-radius: 4px; flex-shrink: 0;
@@ -663,6 +671,7 @@
           </div>
           <!-- PDF 文件项 -->
           <div class="att-file" id="s1PdfItem" data-state="ok" onclick="openImgViewer('s1PdfItem')">
+            <span class="file-index">#003</span>
             <div class="file-icon">
               P
               <div class="file-icon-corner" id="s1PdfBadge"></div>
@@ -726,6 +735,7 @@
           </div>
           <!-- PDF 文件项 -->
           <div class="att-file" id="s2PdfItem" data-state="ok" onclick="openImgViewer('s2PdfItem')">
+            <span class="file-index">#003</span>
             <div class="file-icon">
               P
               <div class="file-icon-corner" id="s2PdfBadge"></div>
