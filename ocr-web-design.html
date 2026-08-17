@@ -131,27 +131,26 @@
   }
   .s1-file-item {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 6px 10px; border: 1px solid #e4e7ed; border-radius: 4px;
-    background: #fff; font-size: 12px; color: #606266; max-width: 220px;
-    transition: all .2s; position: relative;
+    padding: 5px 10px 5px 5px; border: 1px solid #e4e7ed; border-radius: 16px;
+    background: #fff; font-size: 12px; color: #606266;
+    transition: all .2s; position: relative; cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
   }
   .s1-file-item:hover { border-color: #409eff; }
   .s1-file-item .icon {
-    width: 18px; height: 18px; border-radius: 2px;
-    background: #e6f2ff; color: #409eff;
+    width: 22px; height: 22px; border-radius: 4px;
+    background: linear-gradient(135deg, #67c23a 0%, #4caf50 100%); color: #fff;
     display: flex; align-items: center; justify-content: center;
     font-size: 11px; flex-shrink: 0;
   }
   /* PDF 附件编号（与图片缩略图编号一致） */
   .s1-file-item .file-index {
-    position: absolute; top: -7px; left: -7px; z-index: 2;
-    padding: 1px 7px; border-radius: 4px;
-    background: #409eff; color: #fff;
-    font-size: 10px; font-weight: 600;
-    border: 2px solid #fff; line-height: 1.2;
+    padding: 1px 6px; border-radius: 10px;
+    background: #ecf5ff; color: #409eff;
+    font-size: 11px; font-weight: 600; line-height: 1.3;
   }
   .s1-file-item .name {
-    flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .s1-file-item .del {
     color: #c0c4cc; cursor: pointer; font-size: 12px; padding: 2px;
@@ -159,16 +158,16 @@
   }
   .s1-file-item .del:hover { color: #f56c6c; }
   .s1-file-item .status-tag {
-    font-size: 10px; padding: 1px 5px; border-radius: 8px; margin-left: 4px;
+    font-size: 11px; color: #606266; flex-shrink: 0;
   }
-  .s1-file-item .status-tag.ok { background: #f0f9eb; color: #67c23a; }
-  .s1-file-item .status-tag.dup { background: #fdf6ec; color: #e6a23c; }
-  .s1-file-item .status-tag.err { background: #fef0f0; color: #f56c6c; }
+  .s1-file-item .status-tag.ok { color: #67c23a; }
+  .s1-file-item .status-tag.dup { color: #e6a23c; }
+  .s1-file-item .status-tag.err { color: #f56c6c; }
   /* PDF 识别中 */
   .s1-file-item.parsing { border-color: #f5dab1; background: #fffbe6; }
   .s1-file-item.parsing .del { display: none; }
   .s1-file-item .parse-spin {
-    display: none; width: 14px; height: 14px; border: 2px solid #f0c78e;
+    display: none; width: 12px; height: 12px; border: 2px solid #f0c78e;
     border-top-color: #e6a23c; border-radius: 50%;
     animation: spin .8s linear infinite; flex-shrink: 0;
   }
@@ -749,9 +748,10 @@
                 </div>
                 <div class="s1-file-list" id="s1FileList">
                   <div class="s1-file-item" id="s1File0" data-type="pdf" data-state="ok" onclick="openImgViewer('s1File0')">
-                    <span class="file-index">#003</span>
-                    <span class="icon">📁</span>
+                    <span class="icon">📄</span>
                     <span class="name">testtest.pdf</span>
+                    <span class="file-index">#003</span>
+                    <span class="status-tag ok" id="s1File0Status">识别成功</span>
                     <span class="parse-spin"></span>
                     <span class="del" onclick="s1DeleteFile(event, 's1File0')">✕</span>
                   </div>
@@ -838,9 +838,10 @@
                 </div>
                 <div class="s1-file-list" id="s2FileList">
                   <div class="s1-file-item" id="s2File0" data-type="pdf" data-state="ok" onclick="openImgViewer('s2File0')">
-                    <span class="file-index">#003</span>
-                    <span class="icon">📁</span>
+                    <span class="icon">📄</span>
                     <span class="name">testtest.pdf</span>
+                    <span class="file-index">#003</span>
+                    <span class="status-tag ok" id="s2File0Status">识别成功</span>
                     <span class="parse-spin"></span>
                     <span class="del" onclick="s2DeleteFile(event, 's2File0')">✕</span>
                   </div>
@@ -1129,20 +1130,27 @@
   function s1SetFileStatus(type) {
     s1GetFileItems().forEach(function(item) {
       item.classList.remove('parsing');
-      var old = item.querySelector('.status-tag');
-      if (old) old.remove();
-      var tag = document.createElement('span');
+      var tag = item.querySelector('.status-tag');
+      if (!tag) {
+        tag = document.createElement('span');
+        tag.className = 'status-tag';
+        item.insertBefore(tag, item.querySelector('.parse-spin'));
+      }
       tag.className = 'status-tag ' + type;
       if (type === 'ok') tag.textContent = '识别成功';
-      else if (type === 'dup') tag.textContent = '已重复';
+      else if (type === 'dup') tag.textContent = '识别重复';
       else if (type === 'err') tag.textContent = '识别失败';
-      item.appendChild(tag);
     });
   }
 
   function s1SetFileParsing() {
     s1GetFileItems().forEach(function(item) {
       item.classList.add('parsing');
+      var tag = item.querySelector('.status-tag');
+      if (tag) {
+        tag.className = 'status-tag';
+        tag.textContent = '识别中';
+      }
     });
   }
 
