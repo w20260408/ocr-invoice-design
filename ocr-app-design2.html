@@ -653,6 +653,7 @@
               <div class="bg b2"></div>
               <div class="thumb-index">#002</div>
               <div class="thumb-status ok" id="s1Status2"><span class="dot"></span>识别成功</div>
+              <div class="overlay" id="s1Ovl2"></div>
             </div>
           </div>
           <!-- PDF 文件项 -->
@@ -715,6 +716,7 @@
               <div class="bg b2"></div>
               <div class="thumb-index">#002</div>
               <div class="thumb-status ok" id="s2Status2"><span class="dot"></span>识别成功</div>
+              <div class="overlay" id="s2Ovl2"></div>
             </div>
           </div>
           <!-- PDF 文件项 -->
@@ -925,7 +927,7 @@
   /* ===== 场景一：缩略图状态循环 ===== */
   var s1State = 0;
   function s1Cycle() {
-    s1State = (s1State + 1) % 4;
+    s1State = (s1State + 1) % 5;
     var ovl1 = document.getElementById('s1Ovl1');
     var ovl2 = document.getElementById('s1Ovl2');
     var status1 = document.getElementById('s1Status1');
@@ -941,9 +943,13 @@
       el.className = 'thumb-status' + (type ? ' ' + type : '');
       el.innerHTML = text ? '<span class="dot"></span>' + text : '';
     }
+    function clearOverlay(o) {
+      if (!o) return;
+      o.className = 'overlay'; o.innerHTML = '';
+    }
 
     // reset
-    [ovl1,ovl2].forEach(function(o){ o.className='overlay'; o.innerHTML=''; });
+    clearOverlay(ovl1); clearOverlay(ovl2);
     setThumbStatus(status1, '', '');
     setThumbStatus(status2, '', '');
     sum.style.display='none';
@@ -957,7 +963,6 @@
       s1SetPdfStatus('parsing');
     } else if (s1State === 1) {
       // 全部成功
-      ovl1.innerHTML=''; ovl2.innerHTML='';
       setThumbStatus(status1, 'ok', '识别成功');
       setThumbStatus(status2, 'ok', '识别成功');
       no.className='form-input filled'; no.value='20260810001234';
@@ -966,14 +971,19 @@
       date.className='form-input filled'; date.value='2026-08-08';
       s1SetPdfStatus('ok');
     } else if (s1State === 2) {
-      // 混合：1成功 1模糊失败
-      ovl1.innerHTML='';
+      // 全部重复
+      setThumbStatus(status1, 'dup', '识别重复');
+      setThumbStatus(status2, 'dup', '识别重复');
+      sum.style.display='flex';
+      s1SetPdfStatus('dup');
+    } else if (s1State === 3) {
+      // 混合：1成功 1失败
       setThumbStatus(status1, 'ok', '识别成功');
       setThumbStatus(status2, 'fail', '识别失败');
       sum.style.display='flex';
       s1SetPdfStatus('ok');
     } else {
-      // 全部识别失败
+      // 全部失败
       setThumbStatus(status1, 'fail', '识别失败');
       setThumbStatus(status2, 'fail', '识别失败');
       sum.style.display='flex';
@@ -1179,7 +1189,7 @@
       el.className = 'thumb-status' + (type ? ' ' + type : '');
       el.innerHTML = text ? '<span class="dot"></span>' + text : '';
     }
-    [ovl1, ovl2].forEach(function(o){ o.className='overlay'; o.innerHTML=''; });
+    [ovl1, ovl2].forEach(function(o){ if (!o) return; o.className='overlay'; o.innerHTML=''; });
     setStatus(status1, '', '');
     setStatus(status2, '', '');
     if (state === 'parsing') {
