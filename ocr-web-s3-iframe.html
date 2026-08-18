@@ -8,118 +8,205 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: #fff; color: #303133; font-size: 13px;
+    background: #f5f7fa; color: #262626; font-size: 13px;
     -webkit-font-smoothing: antialiased;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100%{ opacity: 1; } 50%{ opacity: .6; } }
 
-  /* ===== 插件 iframe 页面（整页即"添加数据"弹窗内容） ===== */
-  .plugin {
-    display: flex; flex-direction: column; height: 100vh; min-height: 0;
-  }
+  /* ===== 框架 ===== */
+  .plugin { display: flex; flex-direction: column; height: 100vh; min-height: 0; }
   .plugin-head {
-    padding: 14px 18px; border-bottom: 1px solid #ebeef5;
+    padding: 16px 24px; border-bottom: 1px solid #ebeef5;
     display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    background: #fff;
   }
-  .plugin-title { font-size: 15px; font-weight: 600; color: #303133; }
-  .plugin-title .tag { font-size: 11px; color: #909399; font-weight: 400; }
-  .plugin-close { font-size: 20px; color: #909399; cursor: pointer; background: none; border: none; line-height: 1; }
-  .plugin-close:hover { color: #606266; }
-  .plugin-body { flex: 1; overflow: auto; padding: 14px 16px; min-height: 0; }
+  .plugin-title { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+  .plugin-title .tag { font-size: 12px; color: #8c8c8c; font-weight: 400; margin-left: 6px; }
+  .plugin-close {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: #8c8c8c; cursor: pointer; background: #f5f5f5; border: none;
+    transition: all .2s;
+  }
+  .plugin-close:hover { background: #e8e8e8; color: #595959; }
+  .plugin-body { flex: 1; overflow: auto; padding: 20px 24px; min-height: 0; }
   .plugin-foot {
-    padding: 12px 18px; border-top: 1px solid #ebeef5;
-    display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-shrink: 0;
+    padding: 14px 24px; border-top: 1px solid #ebeef5;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    flex-shrink: 0; background: #fff;
   }
-  .plugin-foot .summary { font-size: 12px; color: #606266; visibility: hidden; }
-  .plugin-foot .summary b { color: #389e0d; }
-  .plugin-foot .actions { display: flex; gap: 10px; }
+
+  /* ===== 按钮 ===== */
   .btn {
-    padding: 6px 16px; border-radius: 4px; font-size: 12px; cursor: pointer;
-    transition: all .15s; border: 1px solid #dcdfe6; background: #fff; color: #606266;
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; cursor: pointer;
+    transition: all .2s; border: 1px solid #d9d9d9; background: #fff; color: #595959;
+    font-weight: 500;
   }
-  .btn:hover { color: #409eff; border-color: #409eff; }
-  .btn.primary { background: #409eff; border-color: #409eff; color: #fff; }
-  .btn.primary:hover { background: #66b1ff; }
-  .btn.primary:disabled { opacity: .5; cursor: not-allowed; background: #409eff; border-color: #409eff; }
+  .btn:hover { color: #409eff; border-color: #409eff; background: #f0f7ff; transform: translateY(-1px); box-shadow: 0 2px 6px rgba(64,158,255,0.12); }
+  .btn.primary {
+    background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+    border-color: transparent; color: #fff;
+    box-shadow: 0 2px 8px rgba(64,158,255,0.25);
+  }
+  .btn.primary:hover {
+    background: linear-gradient(135deg, #66b1ff 0%, #409eff 100%);
+    box-shadow: 0 4px 14px rgba(64,158,255,0.35);
+    transform: translateY(-1px);
+  }
+  .btn.primary:disabled {
+    opacity: .45; cursor: not-allowed;
+    background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+    border-color: transparent; transform: none; box-shadow: none;
+  }
 
   /* ===== 上传区 ===== */
   .s3-upload-zone {
-    border: 2px dashed #d0d5dd; border-radius: 8px; padding: 28px 20px;
+    border: 2px dashed #d9d9d9; border-radius: 12px; padding: 36px 24px;
     text-align: center; cursor: pointer; transition: all .2s;
-    background: #fafbfc; margin-bottom: 14px; position: relative;
+    background: #fff; margin-bottom: 16px; position: relative;
   }
-  .s3-upload-zone:hover, .s3-upload-zone.dragover { border-color: #409eff; background: #f0f7ff; }
-  .s3-upload-zone .uz-icon { font-size: 32px; margin-bottom: 8px; color: #909399; }
-  .s3-upload-zone:hover .uz-icon, .s3-upload-zone.dragover .uz-icon { color: #409eff; }
-  .s3-upload-zone .uz-text { font-size: 13px; color: #606266; margin-bottom: 4px; }
-  .s3-upload-zone .uz-hint { font-size: 11px; color: #c0c4cc; }
-  .s3-upload-zone:hover .uz-hint, .s3-upload-zone.dragover .uz-hint { color: #909399; }
+  .s3-upload-zone:hover, .s3-upload-zone.dragover {
+    border-color: #409eff; background: #f0f7ff;
+    box-shadow: 0 0 0 4px rgba(64,158,255,0.08);
+  }
+  .s3-upload-zone .uz-icon {
+    width: 56px; height: 56px; margin: 0 auto 12px;
+    background: #f5f7fa; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; transition: all .2s;
+  }
+  .s3-upload-zone:hover .uz-icon { background: #e6f2ff; }
+  .s3-upload-zone .uz-text { font-size: 14px; color: #262626; margin-bottom: 6px; font-weight: 500; }
+  .s3-upload-zone .uz-hint { font-size: 12px; color: #bfbfbf; }
+  .s3-upload-zone:hover .uz-hint, .s3-upload-zone.dragover .uz-hint { color: #8c8c8c; }
   .s3-upload-zone input[type=file] { display: none; }
 
   /* ===== 摘要栏 ===== */
   .s3-summary-bar {
-    display: none; align-items: center; gap: 16px; padding: 8px 14px;
-    background: #f5f7fa; border-radius: 6px; margin-bottom: 12px; font-size: 12px; flex-wrap: wrap;
+    display: none; align-items: center; gap: 12px;
+    margin-bottom: 16px; flex-wrap: wrap;
   }
-  .s3-summary-bar .stat { display: flex; align-items: center; gap: 4px; color: #606266; }
-  .s3-summary-bar .stat b { font-size: 14px; }
-  .s3-summary-bar .stat.success b { color: #67c23a; }
-  .s3-summary-bar .stat.dup b { color: #e6a23c; }
-  .s3-summary-bar .stat.err b { color: #f56c6c; }
-  .s3-summary-bar .stat.proc b { color: #909399; }
-  .s3-summary-bar .divider { width: 1px; height: 16px; background: #dcdfe6; }
+  .stat-card {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; background: #fff; border-radius: 10px;
+    font-size: 13px; color: #595959;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    border: 1px solid #ebeef5; flex: 1; min-width: 100px;
+    transition: all .2s;
+  }
+  .stat-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .stat-card .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .stat-card.ok .dot { background: #52c41a; }
+  .stat-card.dup .dot { background: #fa8c16; }
+  .stat-card.err .dot { background: #ff4d4f; }
+  .stat-card.proc .dot { background: #8c8c8c; animation: pulse 1.5s ease infinite; }
+  .stat-card b { font-size: 18px; font-weight: 700; color: #262626; margin-right: 2px; }
 
   /* ===== 列表头 ===== */
   .s3-list-head {
-    display: none; align-items: center; justify-content: space-between; margin-bottom: 10px;
+    display: none; align-items: center; justify-content: space-between; margin-bottom: 14px;
   }
-  .s3-list-head .title { font-size: 13px; font-weight: 600; color: #303133; }
-  .s3-list-head .title span { font-weight: 400; color: #909399; }
-  .s3-list-actions { display: flex; gap: 8px; }
+  .s3-list-head .title { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+  .s3-list-head .title span { font-weight: 400; color: #8c8c8c; margin-left: 4px; }
+  .s3-list-actions { display: flex; gap: 10px; }
   .s3-list-actions button {
-    padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer;
-    border: 1px solid #dcdfe6; background: #fff; color: #606266; transition: all .15s;
+    padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;
+    border: 1px solid #e4e7ed; background: #fff; color: #595959; transition: all .15s;
+    font-weight: 500;
   }
-  .s3-list-actions button:hover { color: #409eff; border-color: #409eff; }
-  .s3-list-actions button.danger:hover { color: #f56c6c; border-color: #f56c6c; }
+  .s3-list-actions button:hover { color: #409eff; border-color: #409eff; background: #f0f7ff; transform: translateY(-1px); }
+  .s3-list-actions button.danger { color: #ff4d4f; border-color: #ffccc7; }
+  .s3-list-actions button.danger:hover { background: #fff1f0; border-color: #ff4d4f; transform: translateY(-1px); }
 
-  /* ===== 结果表 ===== */
-  .s3-table-wrap { max-height: 300px; overflow: auto; border: 1px solid #ebeef5; border-radius: 6px; }
-  .s3-result-table { width: 100%; border-collapse: collapse; font-size: 12px; display: none; }
-  .s3-result-table th, .s3-result-table td { padding: 9px 10px; border-bottom: 1px solid #ebeef5; text-align: left; color: #606266; }
-  .s3-result-table th { background: #f5f7fa; font-weight: 500; color: #909399; font-size: 11px; position: sticky; top: 0; }
-  .s3-result-table th:first-child, .s3-result-table td:first-child { padding-left: 14px; }
-  .s3-result-table th:last-child, .s3-result-table td:last-child { padding-right: 14px; }
-  .s3-result-table .col-chk { width: 36px; text-align: center; }
-  .s3-result-table .col-name { min-width: 120px; }
-  .s3-result-table .col-status { width: 90px; text-align: center; }
-  .s3-result-table .col-action { width: 70px; text-align: center; }
-  .s3-result-table tbody tr { transition: background .15s; }
-  .s3-result-table tbody tr:hover { background: #f5f7fa; }
-  .s3-result-table .rchk { width: 15px; height: 15px; cursor: pointer; accent-color: #409eff; }
-  .s3-result-table .rchk:disabled { cursor: not-allowed; opacity: .4; }
-  .s3-result-table .fname { color: #303133; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; display: block; }
-  .s3-result-table .fval { color: #606266; font-family: "SF Mono", "Menlo", monospace; font-size: 11px; }
+  /* ===== 卡片列表 ===== */
+  .s3-card-list { display: none; }
+  .s3-card-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; font-size: 12px; color: #8c8c8c; font-weight: 500;
+  }
+  .s3-card-body { display: flex; flex-direction: column; gap: 8px; }
+  .s3-card-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 16px; background: #fff; border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    transition: all .2s; animation: fadeIn .3s ease;
+    border: 1px solid transparent;
+  }
+  .s3-card-row:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+    border-color: #e4e7ed;
+  }
+  .cell-chk { width: 36px; flex-shrink: 0; text-align: center; }
+  .cell-name { flex: 1.5; min-width: 120px; }
+  .cell-val { flex: 1; min-width: 90px; }
+  .cell-status { width: 100px; flex-shrink: 0; text-align: center; }
+  .cell-action { width: 90px; flex-shrink: 0; text-align: center; }
 
-  .s3-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 500; white-space: nowrap; }
-  .s3-badge.ok { background: #f0f9eb; color: #67c23a; }
-  .s3-badge.proc { background: #f5f7fa; color: #909399; }
-  .s3-badge.dup { background: #fdf6ec; color: #e6a23c; }
-  .s3-badge.err { background: #fef0f0; color: #f56c6c; }
-  .s3-badge .spin { display: inline-block; width: 10px; height: 10px; border: 1.5px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
-  .s3-retry-btn { padding: 2px 8px; border-radius: 3px; font-size: 11px; cursor: pointer; border: none; background: #fef0f0; color: #f56c6c; transition: all .15s; }
-  .s3-retry-btn:hover { background: #f56c6c; color: #fff; }
-  .s3-remove-btn { padding: 2px 8px; border-radius: 3px; font-size: 11px; cursor: pointer; border: none; background: #f5f7fa; color: #909399; transition: all .15s; margin-left: 4px; }
-  .s3-remove-btn:hover { background: #f56c6c; color: #fff; }
+  .rchk { width: 16px; height: 16px; cursor: pointer; accent-color: #409eff; }
+  .rchk:disabled { cursor: not-allowed; opacity: .4; }
+  .fname {
+    color: #262626; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%; display: block;
+  }
+  .fval { color: #8c8c8c; font-family: "SF Mono", "Menlo", monospace; font-size: 12px; }
 
-  .s3-empty-state { text-align: center; padding: 40px 20px; color: #c0c4cc; }
-  .s3-empty-state .es-icon { font-size: 40px; margin-bottom: 10px; }
-  .s3-empty-state .es-text { font-size: 13px; }
+  /* ===== 状态徽标 ===== */
+  .s3-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  }
+  .s3-badge::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .s3-badge.ok { background: #f6ffed; color: #52c41a; }
+  .s3-badge.ok::before { background: #52c41a; }
+  .s3-badge.proc { background: #f5f7fa; color: #8c8c8c; }
+  .s3-badge.proc::before { background: #8c8c8c; }
+  .s3-badge.dup { background: #fff7e6; color: #fa8c16; }
+  .s3-badge.dup::before { background: #fa8c16; }
+  .s3-badge.err { background: #fff1f0; color: #ff4d4f; }
+  .s3-badge.err::before { background: #ff4d4f; }
+  .s3-badge .spin {
+    display: inline-block; width: 10px; height: 10px;
+    border: 1.5px solid currentColor; border-top-color: transparent;
+    border-radius: 50%; animation: spin .8s linear infinite;
+  }
 
-  /* 独立打开时的提示条（iframe 内嵌时自动隐藏） */
+  /* ===== 操作按钮 ===== */
+  .s3-retry-btn {
+    padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer;
+    border: none; background: #fff1f0; color: #ff4d4f; font-weight: 500;
+    transition: all .15s;
+  }
+  .s3-retry-btn:hover { background: #ff4d4f; color: #fff; box-shadow: 0 2px 6px rgba(255,77,79,0.25); transform: translateY(-1px); }
+  .s3-remove-btn {
+    padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer;
+    border: none; background: #f5f5f5; color: #8c8c8c; font-weight: 500;
+    transition: all .15s; margin-left: 6px;
+  }
+  .s3-remove-btn:hover { background: #ff4d4f; color: #fff; box-shadow: 0 2px 6px rgba(255,77,79,0.25); transform: translateY(-1px); }
+
+  /* ===== 空状态 ===== */
+  .s3-empty-state {
+    text-align: center; padding: 60px 20px; color: #bfbfbf;
+  }
+  .s3-empty-state .es-icon {
+    width: 80px; height: 80px; margin: 0 auto 16px;
+    background: #fff; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .s3-empty-state .es-text { font-size: 14px; color: #595959; margin-bottom: 6px; font-weight: 500; }
+  .s3-empty-state .es-hint { font-size: 12px; color: #bfbfbf; }
+
+  /* 独立打开提示 */
   .standalone-hint {
-    display: none; padding: 8px 14px; background: #fffbe6; color: #e6a23c;
-    font-size: 12px; border-bottom: 1px solid #f5dab1;
+    display: none; padding: 10px 24px; background: #fff7e6; color: #d48806;
+    font-size: 12px; border-bottom: 1px solid #ffe7ba;
   }
 </style>
 </head>
@@ -146,11 +233,10 @@
 
     <!-- 状态摘要栏 -->
     <div class="s3-summary-bar" id="s3SummaryBar">
-      <div class="stat proc" id="s3StatProc"><b>0</b> 解析中</div>
-      <div class="stat success" id="s3StatOk"><b>0</b> 成功</div>
-      <div class="divider"></div>
-      <div class="stat dup" id="s3StatDup"><b>0</b> 重复</div>
-      <div class="stat err" id="s3StatErr"><b>0</b> 失败</div>
+      <div class="stat-card proc" id="s3StatProc"><div class="dot"></div><b>0</b> 解析中</div>
+      <div class="stat-card ok" id="s3StatOk"><div class="dot"></div><b>0</b> 成功</div>
+      <div class="stat-card dup" id="s3StatDup"><div class="dot"></div><b>0</b> 重复</div>
+      <div class="stat-card err" id="s3StatErr"><div class="dot"></div><b>0</b> 失败</div>
     </div>
 
     <!-- 识别结果列表头 -->
@@ -162,30 +248,30 @@
       </div>
     </div>
 
-    <div class="s3-table-wrap">
-      <div class="s3-empty-state" id="s3EmptyState">
-        <div class="es-icon">📋</div>
-        <div class="es-text">上传附件后将在此显示解析结果</div>
+    <!-- 空状态 -->
+    <div class="s3-empty-state" id="s3EmptyState">
+      <div class="es-icon">📋</div>
+      <div class="es-text">上传附件后将在此显示解析结果</div>
+      <div class="es-hint">支持 jpg、png、pdf 格式，单文件不超过 10MB</div>
+    </div>
+
+    <!-- 卡片列表 -->
+    <div class="s3-card-list" id="s3CardList">
+      <div class="s3-card-header">
+        <div class="cell-chk"><input type="checkbox" id="s3CheckAll" onchange="s3ToggleAll(this.checked)"></div>
+        <div class="cell-name">文件名</div>
+        <div class="cell-val">字段 A</div>
+        <div class="cell-val">字段 B</div>
+        <div class="cell-val">字段 C</div>
+        <div class="cell-status">状态</div>
+        <div class="cell-action">操作</div>
       </div>
-      <table class="s3-result-table" id="s3ResultTable">
-        <thead>
-          <tr>
-            <th class="col-chk"><input type="checkbox" id="s3CheckAll" onchange="s3ToggleAll(this.checked)"></th>
-            <th class="col-name">文件名</th>
-            <th>字段 A</th>
-            <th>字段 B</th>
-            <th>字段 C</th>
-            <th class="col-status">状态</th>
-            <th class="col-action">操作</th>
-          </tr>
-        </thead>
-        <tbody id="s3ResultTbody"></tbody>
-      </table>
+      <div class="s3-card-body" id="s3CardBody"></div>
     </div>
   </div>
 
   <div class="plugin-foot">
-    <div class="summary" id="s3FootSummary">已选择 <b id="s3SelectedCount">0</b> 条</div>
+    <div class="summary" id="s3FootSummary" style="font-size:12px;color:#595959;visibility:hidden;">已选择 <b id="s3SelectedCount" style="color:#389e0d;">0</b> 条</div>
     <div class="actions">
       <button class="btn" onclick="doClose()">取消</button>
       <button class="btn primary" onclick="s3Confirm()" id="s3ConfirmBtn" disabled>确定</button>
@@ -194,13 +280,11 @@
 </div>
 
 <script>
-  /* ===== 状态机：'pending' → 'parsing' → 'success' | 'duplicate' | 'error' ===== */
-  var S3_DATA = [];           // { id, filename, fieldA, fieldB, fieldC, status }
+  /* ===== 状态机 ===== */
+  var S3_DATA = [];
   var S3_ID_SEQ = 0;
   var S3_PARSING = false;
-  var S3_PARSE_QUEUE = [];
 
-  // 模拟后端解析结果池（轮转使用）
   var S3_MOCK_POOL = [
     { fieldA: '67163448', fieldB: '2022-10-12', fieldC: '星辰信息技术有限公司', result: 'success' },
     { fieldA: '67163449', fieldB: '2022-10-13', fieldC: '海港云联技术有限公司', result: 'success' },
@@ -220,14 +304,14 @@
 
   /* ===== UI 刷新 ===== */
   function s3RenderTable() {
-    var tbody = document.getElementById('s3ResultTbody');
-    var table = document.getElementById('s3ResultTable');
+    var cardBody = document.getElementById('s3CardBody');
+    var cardList = document.getElementById('s3CardList');
     var empty = document.getElementById('s3EmptyState');
     var listHead = document.getElementById('s3ListHead');
     var summaryBar = document.getElementById('s3SummaryBar');
 
     if (S3_DATA.length === 0) {
-      table.style.display = 'none';
+      cardList.style.display = 'none';
       empty.style.display = '';
       listHead.style.display = 'none';
       summaryBar.style.display = 'none';
@@ -236,12 +320,12 @@
       return;
     }
 
-    table.style.display = '';
+    cardList.style.display = 'block';
     empty.style.display = 'none';
     listHead.style.display = 'flex';
     summaryBar.style.display = 'flex';
 
-    tbody.innerHTML = S3_DATA.map(function(item) {
+    cardBody.innerHTML = S3_DATA.map(function(item) {
       var disabled = item.status !== 'success' ? ' disabled' : '';
       var checked = item.status === 'success' ? ' checked' : '';
       var fieldA = item.fieldA || '—';
@@ -252,30 +336,30 @@
       if (item.status === 'parsing') {
         badgeHtml = '<span class="s3-badge proc"><span class="spin"></span>识别中</span>';
       } else if (item.status === 'success') {
-        badgeHtml = '<span class="s3-badge ok">✓ 已识别</span>';
+        badgeHtml = '<span class="s3-badge ok">已识别</span>';
       } else if (item.status === 'duplicate') {
-        badgeHtml = '<span class="s3-badge dup">⚠ 重复</span>';
+        badgeHtml = '<span class="s3-badge dup">重复</span>';
       } else if (item.status === 'error') {
-        badgeHtml = '<span class="s3-badge err">✗ 失败</span>';
+        badgeHtml = '<span class="s3-badge err">失败</span>';
       }
 
       var actionHtml = '';
       if (item.status === 'error') {
         actionHtml = '<button class="s3-retry-btn" onclick="s3RetryItem(\'' + item.id + '\')">重试</button>';
       } else if (item.status === 'duplicate') {
-        actionHtml = '<span style="color:#c0c4cc;font-size:11px;">不可选</span>';
+        actionHtml = '<span style="color:#bfbfbf;font-size:12px;">不可选</span>';
       }
       actionHtml += '<button class="s3-remove-btn" onclick="s3RemoveItem(\'' + item.id + '\')" title="移除">✕</button>';
 
-      return '<tr>' +
-        '<td class="col-chk"><input type="checkbox" class="s3-item-chk rchk"' + disabled + checked + ' onchange="s3OnCheck()" data-id="' + item.id + '"></td>' +
-        '<td><span class="fname">' + item.filename + '</span></td>' +
-        '<td><span class="fval">' + fieldA + '</span></td>' +
-        '<td><span class="fval">' + fieldB + '</span></td>' +
-        '<td><span class="fval">' + fieldC + '</span></td>' +
-        '<td class="col-status">' + badgeHtml + '</td>' +
-        '<td class="col-action">' + actionHtml + '</td>' +
-        '</tr>';
+      return '<div class="s3-card-row">' +
+        '<div class="cell-chk"><input type="checkbox" class="s3-item-chk rchk"' + disabled + checked + ' onchange="s3OnCheck()" data-id="' + item.id + '"></div>' +
+        '<div class="cell-name"><span class="fname">' + item.filename + '</span></div>' +
+        '<div class="cell-val"><span class="fval">' + fieldA + '</span></div>' +
+        '<div class="cell-val"><span class="fval">' + fieldB + '</span></div>' +
+        '<div class="cell-val"><span class="fval">' + fieldC + '</span></div>' +
+        '<div class="cell-status">' + badgeHtml + '</div>' +
+        '<div class="cell-action">' + actionHtml + '</div>' +
+        '</div>';
     }).join('');
 
     s3UpdateSummary();
@@ -291,13 +375,13 @@
       else if (d.status === 'parsing') proc++;
     });
 
-    document.getElementById('s3StatProc').innerHTML = '<b>' + proc + '</b> 解析中';
-    document.getElementById('s3StatOk').innerHTML = '<b>' + ok + '</b> 成功';
-    document.getElementById('s3StatDup').innerHTML = '<b>' + dup + '</b> 重复';
-    document.getElementById('s3StatErr').innerHTML = '<b>' + err + '</b> 失败';
+    document.getElementById('s3StatProc').innerHTML = '<div class="dot"></div><b>' + proc + '</b> 解析中';
+    document.getElementById('s3StatOk').innerHTML = '<div class="dot"></div><b>' + ok + '</b> 成功';
+    document.getElementById('s3StatDup').innerHTML = '<div class="dot"></div><b>' + dup + '</b> 重复';
+    document.getElementById('s3StatErr').innerHTML = '<div class="dot"></div><b>' + err + '</b> 失败';
     document.getElementById('s3Count').textContent = '(共 ' + total + ' 条)';
 
-    var checked = document.querySelectorAll('#s3ResultTbody .s3-item-chk:checked').length;
+    var checked = document.querySelectorAll('#s3CardBody .s3-item-chk:checked').length;
     if (checked > 0) {
       document.getElementById('s3FootSummary').style.visibility = 'visible';
       document.getElementById('s3SelectedCount').textContent = checked;
@@ -310,8 +394,8 @@
 
   function s3UpdateCheckAll() {
     var checkAll = document.getElementById('s3CheckAll');
-    var items = document.querySelectorAll('#s3ResultTbody .s3-item-chk:not(:disabled)');
-    var checked = document.querySelectorAll('#s3ResultTbody .s3-item-chk:checked');
+    var items = document.querySelectorAll('#s3CardBody .s3-item-chk:not(:disabled)');
+    var checked = document.querySelectorAll('#s3CardBody .s3-item-chk:checked');
     if (items.length === 0) {
       checkAll.checked = false; checkAll.indeterminate = false;
     } else if (checked.length === items.length) {
@@ -323,7 +407,7 @@
 
   function s3OnCheck() { s3UpdateSummary(); s3UpdateCheckAll(); }
   function s3ToggleAll(checked) {
-    document.querySelectorAll('#s3ResultTbody .s3-item-chk:not(:disabled)').forEach(function(cb) {
+    document.querySelectorAll('#s3CardBody .s3-item-chk:not(:disabled)').forEach(function(cb) {
       cb.checked = checked;
     });
     s3UpdateSummary();
@@ -420,26 +504,25 @@
 
   function s3ClearAll() {
     S3_DATA = [];
-    S3_PARSE_QUEUE = [];
     S3_PARSING = false;
     s3RenderTable();
   }
 
   function s3SelectAll() {
-    document.querySelectorAll('#s3ResultTbody .s3-item-chk:not(:disabled)').forEach(function(cb) {
+    document.querySelectorAll('#s3CardBody .s3-item-chk:not(:disabled)').forEach(function(cb) {
       cb.checked = true;
     });
     s3UpdateSummary();
     s3UpdateCheckAll();
   }
 
-  /* ===== 确认 / 关闭（通过 postMessage 与父页面通信） ===== */
+  /* ===== 确认 / 关闭 ===== */
   function isEmbedded() {
     try { return window.parent !== window; } catch (e) { return false; }
   }
 
   function s3Confirm() {
-    var checked = document.querySelectorAll('#s3ResultTbody .s3-item-chk:checked');
+    var checked = document.querySelectorAll('#s3CardBody .s3-item-chk:checked');
     if (checked.length === 0) return;
 
     var items = [];
@@ -452,10 +535,8 @@
     });
 
     if (isEmbedded()) {
-      // 嵌入工单页面时：通知父页面回填并关闭 iframe
       window.parent.postMessage({ type: 'OCR_IFRAME_CONFIRM', items: items }, '*');
     } else {
-      // 独立预览：弹窗展示选中结果
       var txt = items.map(function(it, i) {
         return (i + 1) + '. ' + it.filename + ' → ' + it.fieldA + ' | ' + it.fieldB + ' | ' + it.fieldC;
       }).join('\n');
@@ -495,7 +576,6 @@
     if (document.readyState === 'complete') setupDrag();
     else window.addEventListener('load', setupDrag);
 
-    // 独立打开时显示提示条
     try {
       if (window.parent === window) {
         document.getElementById('standaloneHint').style.display = 'block';
