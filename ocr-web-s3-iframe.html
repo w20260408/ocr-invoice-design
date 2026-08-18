@@ -203,23 +203,13 @@
   .s3-empty-state .es-text { font-size: 14px; color: #595959; margin-bottom: 6px; font-weight: 500; }
   .s3-empty-state .es-hint { font-size: 12px; color: #bfbfbf; }
 
-  /* 独立打开提示 */
-  .standalone-hint {
-    display: none; padding: 10px 24px; background: #fff7e6; color: #d48806;
-    font-size: 12px; border-bottom: 1px solid #ffe7ba;
-  }
 </style>
 </head>
 <body>
 <div class="plugin">
   <div class="plugin-head">
-    <div class="plugin-title">添加数据 <span class="tag">（自定义插件 iframe 弹窗）</span></div>
+    <div class="plugin-title">添加数据</div>
     <button class="plugin-close" onclick="doClose()" title="关闭">×</button>
-  </div>
-
-  <!-- 独立打开提示（嵌入 iframe 时隐藏） -->
-  <div class="standalone-hint" id="standaloneHint">
-    当前为独立预览模式。嵌入工单页面的 iframe 后，本提示自动隐藏，「确定」将通过 postMessage 通知父页面回填数据。
   </div>
 
   <div class="plugin-body">
@@ -547,8 +537,6 @@
   function doClose() {
     if (isEmbedded()) {
       window.parent.postMessage({ type: 'OCR_IFRAME_CLOSE' }, '*');
-    } else {
-      alert('独立预览模式：关闭动作将由父页面（工单页）接管。');
     }
   }
 
@@ -575,14 +563,6 @@
     }
     if (document.readyState === 'complete') setupDrag();
     else window.addEventListener('load', setupDrag);
-
-    try {
-      if (window.parent === window) {
-        document.getElementById('standaloneHint').style.display = 'block';
-      }
-    } catch (e) {
-      document.getElementById('standaloneHint').style.display = 'block';
-    }
   })();
 </script>
 </body>
